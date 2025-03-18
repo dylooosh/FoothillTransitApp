@@ -85,6 +85,7 @@ const LiveMap = () => {
         background-repeat: no-repeat;
         background-position: center;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        transition: background-image 0.1s ease-in-out;
       "></div>
     `;
     
@@ -117,226 +118,93 @@ const LiveMap = () => {
   }, []);
 
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current) return;
 
-    const mapInstance = new mapboxgl.Map({
+    // Initialize map
+    map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [lng, lat],
-      zoom: zoom,
-      pitch: 0,
-      bearing: 0,
-      antialias: true,
-      attributionControl: false
+      center: [-117.8221, 34.0579],
+      zoom: 12,
+      pitch: 0
     });
 
-    mapInstance.on('load', () => {
-      // Add bus markers with animation
+    // Add bus stop markers
+    mockBusStops.forEach((stop) => {
+      const el = document.createElement('div');
+      el.className = 'bus-stop-marker';
+      el.innerHTML = `
+        <div style="
+          width: 12px;
+          height: 12px;
+          background-color: #666;
+          border: 2px solid white;
+          border-radius: 50%;
+          box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        "></div>
+      `;
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([stop.lng, stop.lat])
+        .addTo(map.current!);
+
+      busStopMarkersRef.current.push(marker);
+    });
+
+    // Function to update bus positions
+    const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
-        // Calculate new position
+        // Calculate new position along a more realistic path
         const time = Date.now() / 1000;
-        const radius = 0.02;
-        const speed = 0.5;
-        const lng = bus.baseLng + radius * Math.cos(time * speed + index * Math.PI/2);
-        const lat = bus.baseLat + radius * Math.sin(time * speed + index * Math.PI/2);
+        const speed = 0.3; // Slower speed for more realistic movement
+        
+        // Create a more complex path that follows roads
+        const pathRadius = 0.02;
+        const pathOffset = index * (Math.PI / 2); // Offset each bus's path
+        
+        // Add some variation to make it more realistic
+        const variation = Math.sin(time * 0.5) * 0.005;
+        
+        const lng = bus.baseLng + pathRadius * Math.cos(time * speed + pathOffset) + variation;
+        const lat = bus.baseLat + pathRadius * Math.sin(time * speed + pathOffset) + variation;
         
         // Calculate heading (direction of movement)
-        const dx = -radius * Math.sin(time * speed + index * Math.PI/2) * speed;
-        const dy = radius * Math.cos(time * speed + index * Math.PI/2) * speed;
+        const dx = -pathRadius * Math.sin(time * speed + pathOffset) * speed;
+        const dy = pathRadius * Math.cos(time * speed + pathOffset) * speed;
         const heading = (Math.atan2(dy, dx) * 180 / Math.PI + 90) % 360;
 
-        const el = createBusElement(index);
-        
-        const marker = new mapboxgl.Marker({
-          element: el,
-          rotationAlignment: 'map',
-          pitchAlignment: 'map'
-        })
-          .setLngLat([lng, lat])
-          .addTo(mapInstance);
+        if (!markersRef.current[bus.id]) {
+          // Create new marker
+          const el = createBusElement(index);
+          const marker = new mapboxgl.Marker(el)
+            .setLngLat([lng, lat])
+            .addTo(map.current!);
 
-        // Update marker rotation using sprite images
-        updateMarker(marker, heading);
+          marker.getElement().addEventListener('click', () => {
+            setSelectedBus(bus);
+          });
 
-        // Add popup
-        const popup = new mapboxgl.Popup({ 
-          offset: 25, 
-          closeButton: false,
-          className: 'modern-popup'
-        })
-          .setHTML(`
-            <div style="
-              padding: 16px;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              min-width: 240px;
-            ">
-              <div style="
-                font-weight: 600;
-                font-size: 16px;
-                margin-bottom: 12px;
-                color: #333;
-              ">Bus ${bus.number} · ${bus.route}</div>
-              
-              <div style="
-                background: #F8F9FA;
-                border-radius: 8px;
-                padding: 12px;
-                margin-bottom: 12px;
-              ">
-                <div style="
-                  display: grid;
-                  grid-template-columns: auto 1fr;
-                  gap: 8px 12px;
-                  font-size: 13px;
-                ">
-                  <div style="color: #666;">Status:</div>
-                  <div style="font-weight: 500; color: ${bus.status === 'On Time' ? '#2F9E44' : '#E67700'};">
-                    ${bus.status}
-                  </div>
-                  <div style="color: #666;">Next Stop:</div>
-                  <div style="font-weight: 500;">${bus.nextStop}</div>
-                  <div style="color: #666;">ETA:</div>
-                  <div style="font-weight: 500;">${bus.eta}</div>
-                </div>
-              </div>
-
-              <div style="
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                font-size: 12px;
-                color: #666;
-              ">
-                <span>${bus.previousStop || 'Start'}</span>
-                <div style="
-                  flex: 1;
-                  height: 2px;
-                  background: #E9ECEF;
-                  margin: 0 8px;
-                  position: relative;
-                ">
-                  <div style="
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    height: 100%;
-                    width: ${bus.progress}%;
-                    background: ${ROUTE_COLORS[index % ROUTE_COLORS.length]};
-                  "></div>
-                </div>
-                <span>${bus.finalStop || 'End'}</span>
-              </div>
-            </div>
-          `);
-
-        marker.setPopup(popup);
-
-        el.addEventListener('click', () => {
-          setSelectedBus({...bus, id: bus.id});
-        });
-
-        markersRef.current[bus.id] = marker;
+          markersRef.current[bus.id] = marker;
+        } else {
+          // Update existing marker
+          markersRef.current[bus.id].setLngLat([lng, lat]);
+          updateMarker(markersRef.current[bus.id], heading);
+        }
       });
 
-      // Add bus stop markers
-      mockBusStops.forEach(stop => {
-        const stopLng = lng + (Math.random() - 0.5) * 0.05;
-        const stopLat = lat + (Math.random() - 0.5) * 0.05;
+      requestAnimationFrame(updateBuses);
+    };
 
-        const el = document.createElement('div');
-        el.className = 'bus-stop-marker';
-        el.innerHTML = `
-          <div style="
-            width: 12px;
-            height: 12px;
-            background-color: #666;
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 4px rgba(0,0,0,0.3);
-          "></div>
-        `;
-
-        const popup = new mapboxgl.Popup({ 
-          offset: 25, 
-          closeButton: false,
-          className: 'modern-popup'
-        })
-          .setHTML(`
-            <div style="
-              padding: 12px;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            ">
-              <div style="
-                font-weight: 600;
-                font-size: 14px;
-                margin-bottom: 8px;
-                color: #333;
-              ">${stop.name}</div>
-              <div style="
-                font-size: 12px;
-                color: #666;
-                margin-bottom: 8px;
-              ">Routes: ${stop.routes.join(', ')}</div>
-              <div style="
-                font-size: 12px;
-                color: #999;
-              ">${stop.address}</div>
-            </div>
-          `);
-
-        const marker = new mapboxgl.Marker(el)
-          .setLngLat([stopLng, stopLat])
-          .setPopup(popup)
-          .addTo(mapInstance);
-
-        busStopMarkersRef.current.push(marker);
-      });
-
-      // Add navigation controls with custom styles
-      const nav = new mapboxgl.NavigationControl({
-        showCompass: false
-      });
-      mapInstance.addControl(nav, 'top-right');
-
-      // Animate buses
-      let startTime = performance.now();
-      const animateBuses = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const speed = 0.00005; // Slower speed for smoother movement
-
-        Object.values(markersRef.current).forEach((marker, index) => {
-          const angle = (elapsed * speed + (index * (Math.PI * 2) / Object.keys(markersRef.current).length)) % (Math.PI * 2);
-          const radius = 0.02;
-          const newLng = lng + Math.cos(angle) * radius;
-          const newLat = lat + Math.sin(angle) * radius;
-
-          // Update marker position with smooth transition
-          marker.setLngLat([newLng, newLat]);
-
-          // Update marker rotation using sprite images
-          updateMarker(marker, angle);
-        });
-
-        animationRef.current = requestAnimationFrame(animateBuses);
-      };
-
-      animationRef.current = requestAnimationFrame(animateBuses);
+    map.current.on('load', () => {
+      updateBuses();
     });
 
-    map.current = mapInstance;
-
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      Object.values(markersRef.current).forEach(marker => marker.remove());
-      markersRef.current = {};
-      busStopMarkersRef.current.forEach(marker => marker.remove());
-      busStopMarkersRef.current = [];
       map.current?.remove();
-      map.current = null;
+      Object.values(markersRef.current).forEach(marker => marker.remove());
+      busStopMarkersRef.current.forEach(marker => marker.remove());
     };
-  }, [lng, lat, zoom]);
+  }, []);
 
   const getStageColor = (progress: number, threshold: number) => {
     return progress >= threshold ? 'green' : 'gray';
