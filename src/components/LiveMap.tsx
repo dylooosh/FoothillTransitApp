@@ -172,6 +172,11 @@ const LiveMap = () => {
       pitch: 0
     });
 
+    // Draw routes when they're loaded and map is ready
+    map.current.on('load', () => {
+      console.log('Map loaded, ready to add routes');
+    });
+
     // Add bus stop markers
     mockBusStops.forEach((stop) => {
       const el = document.createElement('div');
@@ -201,29 +206,71 @@ const LiveMap = () => {
         const paths = await Promise.all(ROUTE_COORDINATES.map(async (coords, index) => {
           console.log(`Fetching route ${index + 1}...`);
           const coordinates = coords.map(coord => coord.join(',')).join(';');
-          const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?access_token=${ACCESS_TOKEN}`;
+          // Add radiuses=unlimited parameter to handle GPS coordinates that are far from roads
+          const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?access_token=${ACCESS_TOKEN}&radiuses=unlimited&overview=full`;
           console.log(`Route URL: ${url}`);
-          const response = await fetch(url);
-          const data = await response.json();
-          console.log(`Route ${index + 1} response:`, data);
           
-          if (data.matchings && data.matchings[0]) {
-            // Return the line string as a GeoJSON feature
-            return {
-              type: "Feature",
-              properties: {},
-              geometry: data.matchings[0].geometry
-            };
+          try {
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log(`Route ${index + 1} response:`, data);
+            
+            if (data.code !== 'Ok') {
+              console.error(`Error in route ${index + 1} response:`, data.message || 'Unknown error');
+              return null;
+            }
+            
+            if (data.matchings && data.matchings[0] && data.matchings[0].geometry) {
+              // Create a proper LineString feature with valid structure
+              return {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: data.matchings[0].geometry.coordinates
+                }
+              };
+            }
+            console.warn(`No matching found for route ${index + 1}`);
+            return null;
+          } catch (error) {
+            console.error(`Error fetching route ${index + 1}:`, error);
+            return null;
           }
-          console.warn(`No matching found for route ${index + 1}`);
-          return null;
         }));
         
         const filteredPaths = paths.filter(Boolean);
         console.log('Routes loaded:', filteredPaths.length);
-        setRoutePaths(filteredPaths);
+        
+        if (filteredPaths.length === 0) {
+          console.error('No valid routes found, using fallback route coordinates');
+          // Create manual LineString features as fallback
+          const fallbackRoutes = ROUTE_COORDINATES.map(coords => ({
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: coords
+            }
+          }));
+          setRoutePaths(fallbackRoutes);
+        } else {
+          setRoutePaths(filteredPaths);
+        }
       } catch (error) {
         console.error('Error fetching routes:', error);
+        
+        // Create manual LineString features as fallback
+        const fallbackRoutes = ROUTE_COORDINATES.map(coords => ({
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: coords
+          }
+        }));
+        console.log('Using fallback routes');
+        setRoutePaths(fallbackRoutes);
       }
     };
 
@@ -245,6 +292,52 @@ const LiveMap = () => {
 
     console.log('Starting bus updates with', routePaths.length, 'routes');
 
+    // Add source and layer for routes
+    if (map.current.loaded()) {
+      addRoutesToMap();
+    } else {
+      map.current.once('load', addRoutesToMap);
+    }
+
+    function addRoutesToMap() {
+      // Draw each route with a different color
+      routePaths.forEach((path, index) => {
+        const routeId = `route-${index}`;
+        const sourceId = `route-source-${index}`;
+        
+        // Remove existing layers and sources if they exist
+        if (map.current!.getLayer(routeId)) {
+          map.current!.removeLayer(routeId);
+        }
+        if (map.current!.getSource(sourceId)) {
+          map.current!.removeSource(sourceId);
+        }
+        
+        // Add new source and layer
+        map.current!.addSource(sourceId, {
+          type: 'geojson',
+          data: path
+        });
+        
+        map.current!.addLayer({
+          id: routeId,
+          type: 'line',
+          source: sourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': ROUTE_COLORS[index % ROUTE_COLORS.length],
+            'line-width': 4,
+            'line-opacity': 0.7
+          }
+        });
+        
+        console.log(`Added route ${index} to map`);
+      });
+    }
+
     const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
         const time = Date.now() / 1000;
@@ -259,6 +352,12 @@ const LiveMap = () => {
         }
 
         try {
+          // Validate the geometry type
+          if (!pathFeature.geometry || pathFeature.geometry.type !== 'LineString') {
+            console.error(`Invalid geometry for bus ${bus.id}:`, pathFeature);
+            return;
+          }
+          
           // Calculate the total length of the path
           const pathLength = length(pathFeature);
           
