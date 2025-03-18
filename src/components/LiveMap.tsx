@@ -85,7 +85,6 @@ const LiveMap = () => {
         background-repeat: no-repeat;
         background-position: center;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-        transition: background-image 0.1s ease-in-out;
       "></div>
     `;
     
@@ -156,14 +155,14 @@ const LiveMap = () => {
       mockBuses.forEach((bus, index) => {
         // Calculate new position along a more realistic path
         const time = Date.now() / 1000;
-        const speed = 0.3; // Slower speed for more realistic movement
+        const speed = 0.1; // Slower speed for more realistic movement
         
         // Create a more complex path that follows roads
-        const pathRadius = 0.02;
+        const pathRadius = 0.01; // Smaller radius to adhere closer to roads
         const pathOffset = index * (Math.PI / 2); // Offset each bus's path
         
         // Add some variation to make it more realistic
-        const variation = Math.sin(time * 0.5) * 0.005;
+        const variation = Math.sin(time * 0.5) * 0.0025;
         
         const lng = bus.baseLng + pathRadius * Math.cos(time * speed + pathOffset) + variation;
         const lat = bus.baseLat + pathRadius * Math.sin(time * speed + pathOffset) + variation;
