@@ -5,7 +5,10 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { mockBuses, mockBusStops } from '../data/mockData';
 import BottomNavigation from './BottomNavigation';
-import * as turf from '@turf/turf';
+import length from '@turf/length';
+import along from '@turf/along';
+import bearing from '@turf/bearing';
+import { point } from '@turf/helpers';
 
 // Note: Replace with your Mapbox token
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -223,23 +226,23 @@ const LiveMap = () => {
 
         try {
           // Calculate the total length of the path
-          const pathLength = turf.length(pathFeature);
+          const pathLength = length(pathFeature);
           
           // Calculate position along the snapped path
           const pathProgress = (time * speed) % pathLength;
-          const point = turf.along(pathFeature, pathProgress);
+          const pointOnLine = along(pathFeature, pathProgress);
           
           // Ensure coordinates are correctly typed
-          const position: [number, number] = point.geometry.coordinates as [number, number];
+          const position: [number, number] = pointOnLine.geometry.coordinates as [number, number];
           
           // Calculate a point slightly ahead for heading
-          const nextPoint = turf.along(pathFeature, Math.min(pathProgress + 0.01, pathLength));
-          const nextPosition: [number, number] = nextPoint.geometry.coordinates as [number, number];
+          const nextPointOnLine = along(pathFeature, Math.min(pathProgress + 0.01, pathLength));
+          const nextPosition: [number, number] = nextPointOnLine.geometry.coordinates as [number, number];
           
           // Calculate heading
-          const heading = turf.bearing(
-            turf.point(position),
-            turf.point(nextPosition)
+          const headingValue = bearing(
+            point(position),
+            point(nextPosition)
           );
 
           if (!markersRef.current[bus.id]) {
@@ -257,7 +260,7 @@ const LiveMap = () => {
           } else {
             // Update existing marker
             markersRef.current[bus.id].setLngLat(position);
-            updateMarker(markersRef.current[bus.id], heading);
+            updateMarker(markersRef.current[bus.id], headingValue);
           }
         } catch (error) {
           console.error('Error updating bus position:', error);
