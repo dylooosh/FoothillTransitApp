@@ -223,21 +223,24 @@ const LiveMap = () => {
 
         try {
           // Calculate the total length of the path
-          const pathLength = turf.length(pathFeature, { units: 'kilometers' });
+          const pathLength = turf.length(pathFeature);
           
           // Calculate position along the snapped path
           const pathProgress = (time * speed) % pathLength;
-          const point = turf.along(pathFeature, pathProgress, { units: 'kilometers' });
+          const point = turf.along(pathFeature, pathProgress);
           
           // Ensure coordinates are correctly typed
           const position: [number, number] = point.geometry.coordinates as [number, number];
           
           // Calculate a point slightly ahead for heading
-          const nextPoint = turf.along(pathFeature, Math.min(pathProgress + 0.01, pathLength), { units: 'kilometers' });
+          const nextPoint = turf.along(pathFeature, Math.min(pathProgress + 0.01, pathLength));
           const nextPosition: [number, number] = nextPoint.geometry.coordinates as [number, number];
           
           // Calculate heading
-          const heading = turf.bearing(position, nextPosition);
+          const heading = turf.bearing(
+            turf.point(position),
+            turf.point(nextPosition)
+          );
 
           if (!markersRef.current[bus.id]) {
             // Create new marker
