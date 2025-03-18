@@ -8,11 +8,11 @@ const BottomNavigation = () => {
   const location = useLocation();
 
   const navItems = [
-    { icon: IconMap, label: 'Map', path: '/live-map' },
-    { icon: IconAlertTriangle, label: 'Report', path: '/report-issue' },
+    { icon: IconMap, path: '/live-map' },
+    { icon: IconAlertTriangle, path: '/report-issue' },
     null, // Placeholder for logo
-    { icon: IconCalendarEvent, label: 'Events', path: '/events' },
-    { icon: IconSchool, label: 'Pass', path: '/class-pass' }
+    { icon: IconCalendarEvent, path: '/events' },
+    { icon: IconSchool, path: '/class-pass' }
   ];
 
   return (
@@ -66,16 +66,13 @@ const BottomNavigation = () => {
               onClick={() => navigate(item.path)}
               style={{
                 flex: 1,
-                height: 'auto',
                 padding: '8px 4px',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                gap: '4px'
+                justifyContent: 'center'
               }}
             >
-              <Icon size={20} />
-              <span style={{ fontSize: '12px' }}>{item.label}</span>
+              <Icon size={24} />
             </Button>
           );
         })}
