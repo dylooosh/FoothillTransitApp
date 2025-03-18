@@ -39,18 +39,18 @@ const ROUTE_COLORS = [
 
 // Define the bus angles and their corresponding sprite images
 const BUS_ANGLES = {
-  0: '/FoothillTransitApp/bus-sprites/bus0.png',
-  45: '/FoothillTransitApp/bus-sprites/bus45.png',
-  90: '/FoothillTransitApp/bus-sprites/bus90.png',
-  135: '/FoothillTransitApp/bus-sprites/bus135.png',
-  180: '/FoothillTransitApp/bus-sprites/bus180.png',
-  225: '/FoothillTransitApp/bus-sprites/bus225.png',
-  270: '/FoothillTransitApp/bus-sprites/bus270.png',
-  315: '/FoothillTransitApp/bus-sprites/bus315.png',
+  0: 'bus-sprites/bus0.png',
+  45: 'bus-sprites/bus45.png',
+  90: 'bus-sprites/bus90.png',
+  135: 'bus-sprites/bus135.png',
+  180: 'bus-sprites/bus180.png',
+  225: 'bus-sprites/bus225.png',
+  270: 'bus-sprites/bus270.png',
+  315: 'bus-sprites/bus315.png',
 };
 
 // Mapbox access token and route coordinates
-const ACCESS_TOKEN = 'pk.eyJ1IjoiZHlsb29zaCIsImEiOiJjbTg2cjdrcG0wN3BtMmpwc2JpcDR2dWx3In0.G2LSVKImE8ZslGr2uwvCJA';
+const ACCESS_TOKEN = mapboxgl.accessToken;
 const ROUTE_COORDINATES = [
   [
     [-117.872226, 34.070198],
@@ -110,6 +110,8 @@ const LiveMap = () => {
         background-repeat: no-repeat;
         background-position: center;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        background-color: ${ROUTE_COLORS[routeIndex % ROUTE_COLORS.length]};
+        border-radius: 50%;
       "></div>
     `;
     
@@ -123,9 +125,23 @@ const LiveMap = () => {
     const closestAngle = getClosestAngle(angle);
     const imageUrl = BUS_ANGLES[closestAngle as keyof typeof BUS_ANGLES];
     
+    console.log('Updating marker with image:', imageUrl);
+    
     const div = el.querySelector('.vehicle-marker > div') as HTMLElement;
     if (div) {
       div.style.backgroundImage = `url(${imageUrl})`;
+      
+      // If the image fails to load, at least show the colored circle
+      const img = new Image();
+      img.onload = () => {
+        console.log('Bus image loaded successfully:', imageUrl);
+      };
+      img.onerror = () => {
+        console.error('Failed to load bus image:', imageUrl);
+        // Ensure we still see something if the image fails
+        div.style.opacity = '1';
+      };
+      img.src = imageUrl;
     }
   };
 
@@ -144,6 +160,8 @@ const LiveMap = () => {
   // Fetch route data and create map
   useEffect(() => {
     if (!mapContainer.current) return;
+    
+    console.log('Initializing map...');
 
     // Initialize map
     map.current = new mapboxgl.Map({
@@ -179,10 +197,15 @@ const LiveMap = () => {
     // Fetch the snapped routes for each set of coordinates
     const fetchRoutes = async () => {
       try {
-        const paths = await Promise.all(ROUTE_COORDINATES.map(async (coords) => {
+        console.log('Fetching routes...');
+        const paths = await Promise.all(ROUTE_COORDINATES.map(async (coords, index) => {
+          console.log(`Fetching route ${index + 1}...`);
           const coordinates = coords.map(coord => coord.join(',')).join(';');
-          const response = await fetch(`https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?access_token=${ACCESS_TOKEN}`);
+          const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?access_token=${ACCESS_TOKEN}`;
+          console.log(`Route URL: ${url}`);
+          const response = await fetch(url);
           const data = await response.json();
+          console.log(`Route ${index + 1} response:`, data);
           
           if (data.matchings && data.matchings[0]) {
             // Return the line string as a GeoJSON feature
@@ -192,10 +215,13 @@ const LiveMap = () => {
               geometry: data.matchings[0].geometry
             };
           }
+          console.warn(`No matching found for route ${index + 1}`);
           return null;
         }));
         
-        setRoutePaths(paths.filter(Boolean));
+        const filteredPaths = paths.filter(Boolean);
+        console.log('Routes loaded:', filteredPaths.length);
+        setRoutePaths(filteredPaths);
       } catch (error) {
         console.error('Error fetching routes:', error);
       }
@@ -212,7 +238,12 @@ const LiveMap = () => {
 
   // Update bus positions when routes are loaded
   useEffect(() => {
-    if (!map.current || routePaths.length === 0) return;
+    if (!map.current || routePaths.length === 0) {
+      console.log('Map or routes not ready yet. Map:', !!map.current, 'Routes:', routePaths.length);
+      return;
+    }
+
+    console.log('Starting bus updates with', routePaths.length, 'routes');
 
     const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
@@ -222,7 +253,10 @@ const LiveMap = () => {
         // Use a different path for each bus
         const pathIndex = index % routePaths.length;
         const pathFeature = routePaths[pathIndex];
-        if (!pathFeature) return;
+        if (!pathFeature) {
+          console.warn(`No path found for bus ${bus.id} at index ${pathIndex}`);
+          return;
+        }
 
         try {
           // Calculate the total length of the path
@@ -257,13 +291,14 @@ const LiveMap = () => {
             });
 
             markersRef.current[bus.id] = marker;
+            console.log(`Created marker for bus ${bus.id} at position:`, position);
           } else {
             // Update existing marker
             markersRef.current[bus.id].setLngLat(position);
             updateMarker(markersRef.current[bus.id], headingValue);
           }
         } catch (error) {
-          console.error('Error updating bus position:', error);
+          console.error(`Error updating bus ${bus.id}:`, error);
         }
       });
 
