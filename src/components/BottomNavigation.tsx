@@ -1,86 +1,85 @@
 import React from 'react';
-import { Card, Group, Button, Text, Image, Box } from '@mantine/core';
-import { IconBus, IconAlertTriangle, IconCalendarEvent, IconSchool } from '@tabler/icons-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Paper, Group, Button, Image, Box } from '@mantine/core';
+import { IconMap, IconCalendarEvent, IconShare } from '@tabler/icons-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const BottomNavigation = () => {
+  const navigate = useNavigate();
   const location = useLocation();
-  const currentPath = location.pathname;
 
   const navItems = [
-    { icon: <IconBus size={16} />, label: 'Map', path: '/live-map' },
-    { icon: <IconAlertTriangle size={16} />, label: 'Report', path: '/report-issue' },
-    null, // Center placeholder for logo
-    { icon: <IconCalendarEvent size={16} />, label: 'Events', path: '/events' },
-    { icon: <IconSchool size={16} />, label: 'Pass', path: '/class-pass' },
+    { icon: IconMap, label: 'Live Map', path: '/live-map' },
+    null, // Placeholder for logo
+    { icon: IconCalendarEvent, label: 'Events', path: '/events' },
+    { icon: IconShare, label: 'Share', path: '/share' }
   ];
 
   return (
-    <Card
+    <Paper
+      shadow="md"
+      p="xs"
       style={{
         position: 'fixed',
         bottom: 0,
         left: 0,
         right: 0,
         zIndex: 1000,
-        borderRadius: '16px 16px 0 0',
-        boxShadow: '0 -4px 12px rgba(0,0,0,0.1)'
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        borderTop: '1px solid rgba(0, 0, 0, 0.1)'
       }}
-      p="xs"
     >
-      <Group justify="space-between" gap={2}>
-        {navItems.map((item, index) => 
-          item === null ? (
-            <Box 
-              key="logo" 
-              component={Link} 
-              to="/"
-              style={{ 
-                width: '20%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
-              <Image
-                src="/foothill-transit1.jpg"
-                alt="Foothill Transit"
-                w={50}
-                h={32}
-                style={{ objectFit: 'contain' }}
-                key={Date.now()}
-              />
-            </Box>
-          ) : (
+      <Group justify="space-between" px="xs">
+        {navItems.map((item, index) => {
+          if (item === null) {
+            return (
+              <Box
+                key="logo"
+                style={{
+                  width: '20%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
+              >
+                <Image
+                  src="/FoothillTransitApp/foothill-transit1.jpg"
+                  alt="Foothill Transit"
+                  w={50}
+                  h={32}
+                  style={{ objectFit: 'contain' }}
+                  key={Date.now()}
+                />
+              </Box>
+            );
+          }
+
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+
+          return (
             <Button
               key={item.path}
               variant="subtle"
-              color={currentPath === item.path ? 'blue' : 'gray'}
-              component={Link}
-              to={item.path}
-              styles={{
-                root: {
-                  flex: '1 1 0',
-                  padding: '2px',
-                  minWidth: 0,
-                  height: 'auto',
-                  width: '20%'
-                },
-                inner: {
-                  flexDirection: 'column',
-                  gap: 1
-                }
+              color={isActive ? 'blue' : 'gray'}
+              onClick={() => navigate(item.path)}
+              style={{
+                flex: 1,
+                height: 'auto',
+                padding: '8px 4px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px'
               }}
             >
-              {item.icon}
-              <Text size="xs" lh={1} mt={1}>
-                {item.label}
-              </Text>
+              <Icon size={20} />
+              <span style={{ fontSize: '12px' }}>{item.label}</span>
             </Button>
-          )
-        )}
+          );
+        })}
       </Group>
-    </Card>
+    </Paper>
   );
 };
 
