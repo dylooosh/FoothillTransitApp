@@ -48,8 +48,8 @@ const LiveMap = () => {
   const [showTracker, setShowTracker] = useState(false);
   const theme = useMantineTheme();
 
-  // Get the current URL for QR code
-  const currentURL = window.location.origin + '/live-map';
+  // Get the GitHub Pages URL
+  const currentURL = 'https://dylooosh.github.io/FoothillTransitApp/#/live-map';
 
   // Function to create a modern vehicle marker
   const createBusElement = (status: string, routeIndex: number) => {
