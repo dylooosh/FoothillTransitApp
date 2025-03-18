@@ -8,4 +8,13 @@ export default defineConfig({
     port: 5174,
   },
   base: '/FoothillTransitApp/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  }
 }); 
