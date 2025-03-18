@@ -1,6 +1,6 @@
 import React from 'react';
 import { Paper, Group, Button, Image, Box } from '@mantine/core';
-import { IconMap, IconCalendarEvent, IconShare } from '@tabler/icons-react';
+import { IconMap, IconCalendarEvent, IconSchool, IconAlertTriangle } from '@tabler/icons-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const BottomNavigation = () => {
@@ -8,10 +8,11 @@ const BottomNavigation = () => {
   const location = useLocation();
 
   const navItems = [
-    { icon: IconMap, label: 'Live Map', path: '/live-map' },
+    { icon: IconMap, label: 'Map', path: '/live-map' },
+    { icon: IconAlertTriangle, label: 'Report', path: '/report-issue' },
     null, // Placeholder for logo
     { icon: IconCalendarEvent, label: 'Events', path: '/events' },
-    { icon: IconShare, label: 'Share', path: '/share' }
+    { icon: IconSchool, label: 'Pass', path: '/class-pass' }
   ];
 
   return (
