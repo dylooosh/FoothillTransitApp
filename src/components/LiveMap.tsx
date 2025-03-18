@@ -102,47 +102,35 @@ const LiveMap = () => {
     const el = document.createElement('div');
     el.className = 'vehicle-marker';
     
+    const color = ROUTE_COLORS[routeIndex % ROUTE_COLORS.length];
+    
     const markerHtml = `
       <div style="
-        width: 48px;
-        height: 48px;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-        background-color: ${ROUTE_COLORS[routeIndex % ROUTE_COLORS.length]};
+        width: 32px;
+        height: 32px;
+        background-color: ${color};
+        border: 3px solid white;
         border-radius: 50%;
-      "></div>
+        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+      ">
+        B${routeIndex+1}
+      </div>
     `;
     
     el.innerHTML = markerHtml;
     return el;
   };
 
-  // Function to update marker rotation using sprite images
+  // Simplify the marker update function - don't use sprite images
   const updateMarker = (marker: mapboxgl.Marker, angle: number) => {
-    const el = marker.getElement();
-    const closestAngle = getClosestAngle(angle);
-    const imageUrl = BUS_ANGLES[closestAngle as keyof typeof BUS_ANGLES];
-    
-    console.log('Updating marker with image:', imageUrl);
-    
-    const div = el.querySelector('.vehicle-marker > div') as HTMLElement;
-    if (div) {
-      div.style.backgroundImage = `url(${imageUrl})`;
-      
-      // If the image fails to load, at least show the colored circle
-      const img = new Image();
-      img.onload = () => {
-        console.log('Bus image loaded successfully:', imageUrl);
-      };
-      img.onerror = () => {
-        console.error('Failed to load bus image:', imageUrl);
-        // Ensure we still see something if the image fails
-        div.style.opacity = '1';
-      };
-      img.src = imageUrl;
-    }
+    // Just update the position, no need to change the icon
+    console.log('Marker updated with angle:', angle);
   };
 
   useEffect(() => {
@@ -172,10 +160,23 @@ const LiveMap = () => {
       pitch: 0
     });
 
-    // Draw routes when they're loaded and map is ready
-    map.current.on('load', () => {
-      console.log('Map loaded, ready to add routes');
-    });
+    // Create routes directly without API calls
+    const createRoutes = () => {
+      console.log('Creating routes directly...');
+      
+      // Convert route coordinates to GeoJSON LineString features
+      const routes = ROUTE_COORDINATES.map(coords => ({
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: coords
+        }
+      }));
+      
+      console.log('Routes created:', routes.length);
+      setRoutePaths(routes);
+    };
 
     // Add bus stop markers
     mockBusStops.forEach((stop) => {
@@ -199,82 +200,8 @@ const LiveMap = () => {
       busStopMarkersRef.current.push(marker);
     });
 
-    // Fetch the snapped routes for each set of coordinates
-    const fetchRoutes = async () => {
-      try {
-        console.log('Fetching routes...');
-        const paths = await Promise.all(ROUTE_COORDINATES.map(async (coords, index) => {
-          console.log(`Fetching route ${index + 1}...`);
-          const coordinates = coords.map(coord => coord.join(',')).join(';');
-          // Add radiuses=unlimited parameter to handle GPS coordinates that are far from roads
-          const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?access_token=${ACCESS_TOKEN}&radiuses=unlimited&overview=full`;
-          console.log(`Route URL: ${url}`);
-          
-          try {
-            const response = await fetch(url);
-            const data = await response.json();
-            console.log(`Route ${index + 1} response:`, data);
-            
-            if (data.code !== 'Ok') {
-              console.error(`Error in route ${index + 1} response:`, data.message || 'Unknown error');
-              return null;
-            }
-            
-            if (data.matchings && data.matchings[0] && data.matchings[0].geometry) {
-              // Create a proper LineString feature with valid structure
-              return {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: data.matchings[0].geometry.coordinates
-                }
-              };
-            }
-            console.warn(`No matching found for route ${index + 1}`);
-            return null;
-          } catch (error) {
-            console.error(`Error fetching route ${index + 1}:`, error);
-            return null;
-          }
-        }));
-        
-        const filteredPaths = paths.filter(Boolean);
-        console.log('Routes loaded:', filteredPaths.length);
-        
-        if (filteredPaths.length === 0) {
-          console.error('No valid routes found, using fallback route coordinates');
-          // Create manual LineString features as fallback
-          const fallbackRoutes = ROUTE_COORDINATES.map(coords => ({
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: coords
-            }
-          }));
-          setRoutePaths(fallbackRoutes);
-        } else {
-          setRoutePaths(filteredPaths);
-        }
-      } catch (error) {
-        console.error('Error fetching routes:', error);
-        
-        // Create manual LineString features as fallback
-        const fallbackRoutes = ROUTE_COORDINATES.map(coords => ({
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: coords
-          }
-        }));
-        console.log('Using fallback routes');
-        setRoutePaths(fallbackRoutes);
-      }
-    };
-
-    fetchRoutes();
+    // Call the createRoutes function instead of fetchRoutes
+    createRoutes();
 
     return () => {
       map.current?.remove();
@@ -292,52 +219,64 @@ const LiveMap = () => {
 
     console.log('Starting bus updates with', routePaths.length, 'routes');
 
-    // Add source and layer for routes
-    if (map.current.loaded()) {
-      addRoutesToMap();
-    } else {
-      map.current.once('load', addRoutesToMap);
-    }
+    // Display routes on map
+    const displayRoutes = () => {
+      console.log('Displaying routes on map');
+      
+      // Add routes to map if it's loaded
+      if (map.current && map.current.loaded()) {
+        addRoutesToMap();
+      } else if (map.current) {
+        // Wait for map to load
+        map.current.once('load', addRoutesToMap);
+      }
+    };
 
     function addRoutesToMap() {
+      console.log('Adding routes to map');
+      
       // Draw each route with a different color
       routePaths.forEach((path, index) => {
-        const routeId = `route-${index}`;
-        const sourceId = `route-source-${index}`;
-        
-        // Remove existing layers and sources if they exist
-        if (map.current!.getLayer(routeId)) {
-          map.current!.removeLayer(routeId);
-        }
-        if (map.current!.getSource(sourceId)) {
-          map.current!.removeSource(sourceId);
-        }
-        
-        // Add new source and layer
-        map.current!.addSource(sourceId, {
-          type: 'geojson',
-          data: path
-        });
-        
-        map.current!.addLayer({
-          id: routeId,
-          type: 'line',
-          source: sourceId,
-          layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-          },
-          paint: {
-            'line-color': ROUTE_COLORS[index % ROUTE_COLORS.length],
-            'line-width': 4,
-            'line-opacity': 0.7
+        try {
+          const routeId = `route-${index}`;
+          const sourceId = `route-source-${index}`;
+          
+          console.log(`Adding route ${index}:`, path);
+          
+          // Add source and layer if they don't exist
+          if (!map.current!.getSource(sourceId)) {
+            map.current!.addSource(sourceId, {
+              type: 'geojson',
+              data: path
+            });
+            
+            map.current!.addLayer({
+              id: routeId,
+              type: 'line',
+              source: sourceId,
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': ROUTE_COLORS[index % ROUTE_COLORS.length],
+                'line-width': 4,
+                'line-opacity': 0.7
+              }
+            });
+            
+            console.log(`Added route ${index} to map`);
           }
-        });
-        
-        console.log(`Added route ${index} to map`);
+        } catch (error) {
+          console.error(`Error adding route ${index} to map:`, error);
+        }
       });
     }
 
+    // Display routes
+    displayRoutes();
+
+    // Update buses
     const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
         const time = Date.now() / 1000;
@@ -380,7 +319,7 @@ const LiveMap = () => {
 
           if (!markersRef.current[bus.id]) {
             // Create new marker
-            const el = createBusElement(index);
+            const el = createBusElement(pathIndex);
             const marker = new mapboxgl.Marker(el)
               .setLngLat(position)
               .addTo(map.current!);
