@@ -38,7 +38,8 @@ const ROUTE_COLORS = [
 ];
 
 // Define the bus angles and their corresponding sprite images
-const BUS_ANGLES = {
+type BusAngles = { [key: number]: string };
+const BUS_ANGLES: BusAngles = {
   0: 'bus-sprites/bus0.png',
   45: 'bus-sprites/bus45.png',
   90: 'bus-sprites/bus90.png',
@@ -102,35 +103,24 @@ const LiveMap = () => {
     const el = document.createElement('div');
     el.className = 'vehicle-marker';
     
-    const color = ROUTE_COLORS[routeIndex % ROUTE_COLORS.length];
+    const img = document.createElement('img');
+    img.src = BUS_ANGLES[0]; // Start with 0 degree angle
+    img.style.width = '32px';
+    img.style.height = '32px';
+    img.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
     
-    const markerHtml = `
-      <div style="
-        width: 32px;
-        height: 32px;
-        background-color: ${color};
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-      ">
-        B${routeIndex+1}
-      </div>
-    `;
-    
-    el.innerHTML = markerHtml;
+    el.appendChild(img);
     return el;
   };
 
-  // Simplify the marker update function - don't use sprite images
+  // Update marker with correct sprite based on angle
   const updateMarker = (marker: mapboxgl.Marker, angle: number) => {
-    // Just update the position, no need to change the icon
-    console.log('Marker updated with angle:', angle);
+    const el = marker.getElement();
+    const img = el.querySelector('img');
+    if (img) {
+      const closestAngle = getClosestAngle(angle);
+      img.src = BUS_ANGLES[closestAngle];
+    }
   };
 
   useEffect(() => {
@@ -145,7 +135,7 @@ const LiveMap = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Fetch route data and create map
+  // Initialize map and create routes
   useEffect(() => {
     if (!mapContainer.current) return;
     
@@ -200,7 +190,7 @@ const LiveMap = () => {
       busStopMarkersRef.current.push(marker);
     });
 
-    // Call the createRoutes function instead of fetchRoutes
+    // Call the createRoutes function
     createRoutes();
 
     return () => {
@@ -218,63 +208,6 @@ const LiveMap = () => {
     }
 
     console.log('Starting bus updates with', routePaths.length, 'routes');
-
-    // Display routes on map
-    const displayRoutes = () => {
-      console.log('Displaying routes on map');
-      
-      // Add routes to map if it's loaded
-      if (map.current && map.current.loaded()) {
-        addRoutesToMap();
-      } else if (map.current) {
-        // Wait for map to load
-        map.current.once('load', addRoutesToMap);
-      }
-    };
-
-    function addRoutesToMap() {
-      console.log('Adding routes to map');
-      
-      // Draw each route with a different color
-      routePaths.forEach((path, index) => {
-        try {
-          const routeId = `route-${index}`;
-          const sourceId = `route-source-${index}`;
-          
-          console.log(`Adding route ${index}:`, path);
-          
-          // Add source and layer if they don't exist
-          if (!map.current!.getSource(sourceId)) {
-            map.current!.addSource(sourceId, {
-              type: 'geojson',
-              data: path
-            });
-            
-            map.current!.addLayer({
-              id: routeId,
-              type: 'line',
-              source: sourceId,
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
-              paint: {
-                'line-color': ROUTE_COLORS[index % ROUTE_COLORS.length],
-                'line-width': 4,
-                'line-opacity': 0.7
-              }
-            });
-            
-            console.log(`Added route ${index} to map`);
-          }
-        } catch (error) {
-          console.error(`Error adding route ${index} to map:`, error);
-        }
-      });
-    }
-
-    // Display routes
-    displayRoutes();
 
     // Update buses
     const updateBuses = () => {
