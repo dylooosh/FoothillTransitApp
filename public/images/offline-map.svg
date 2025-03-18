@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#f0f0f0"/>
+  
+  <!-- Roads -->
+  <g stroke="#666" stroke-width="8" fill="none">
+    <!-- Main horizontal road -->
+    <path d="M 0,300 L 800,300" />
+    
+    <!-- Vertical roads -->
+    <path d="M 200,0 L 200,600" />
+    <path d="M 400,0 L 400,600" />
+    <path d="M 600,0 L 600,600" />
+    
+    <!-- Diagonal roads -->
+    <path d="M 100,100 L 300,400" />
+    <path d="M 500,200 L 700,500" />
+  </g>
+  
+  <!-- Road markers -->
+  <g stroke="#fff" stroke-width="2" stroke-dasharray="10,10">
+    <path d="M 0,300 L 800,300" />
+    <path d="M 200,0 L 200,600" />
+    <path d="M 400,0 L 400,600" />
+    <path d="M 600,0 L 600,600" />
+    <path d="M 100,100 L 300,400" />
+    <path d="M 500,200 L 700,500" />
+  </g>
+  
+  <!-- Areas -->
+  <g fill-opacity="0.1">
+    <rect x="50" y="50" width="300" height="200" fill="#35A635" />
+    <rect x="450" y="350" width="300" height="200" fill="#0073E6" />
+  </g>
+  
+  <!-- Labels -->
+  <g font-family="Arial" font-size="14" fill="#333">
+    <text x="150" y="150">Cal Poly Pomona</text>
+    <text x="550" y="450">Downtown Pomona</text>
+    <text x="350" y="290">Grand Ave</text>
+    <text x="190" y="250">Temple Ave</text>
+    <text x="590" y="250">Holt Ave</text>
+  </g>
+</svg> 
