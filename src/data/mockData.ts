@@ -8,6 +8,8 @@ export interface Bus {
   progress: number;
   previousStop: string;
   finalStop: string;
+  baseLng: number;
+  baseLat: number;
 }
 
 export interface BusStop {
@@ -16,6 +18,8 @@ export interface BusStop {
   address: string;
   routes: string[];
   amenities: string[];
+  lng: number;
+  lat: number;
 }
 
 export interface Event {
@@ -31,61 +35,73 @@ export interface Event {
 
 export const mockBuses = [
   {
-    id: '1',
-    number: '195A',
-    route: 'Silver Streak',
+    id: 'BUS001',
+    number: '187',
+    route: '187A',
+    status: 'On Time',
+    nextStop: 'Foothill Transit Center',
+    eta: '5',
+    progress: 75,
+    previousStop: 'Azusa Ave / Gladstone St',
+    finalStop: 'Montclair Transit Center',
+    baseLng: -117.8221,
+    baseLat: 34.0579
+  },
+  {
+    id: 'BUS002',
+    number: '280',
+    route: '280B',
+    status: 'Delayed',
+    nextStop: 'Azusa Station',
+    eta: '10',
+    progress: 25,
+    previousStop: 'Citrus College',
+    finalStop: 'Puente Hills Mall',
+    baseLng: -117.8321,
+    baseLat: 34.0679
+  },
+  {
+    id: 'BUS003',
+    number: '486',
+    route: '486C',
     status: 'On Time',
     nextStop: 'Cal Poly Pomona',
-    eta: '5 min',
-    progress: 75,
-    previousStop: 'Downtown Pomona',
-    finalStop: 'El Monte Station'
-  },
-  {
-    id: '2',
-    number: '486',
-    route: 'Express Line',
-    status: 'Delayed',
-    nextStop: 'Pomona Transit Center',
-    eta: '10 min',
-    progress: 45,
+    eta: '3',
+    progress: 50,
     previousStop: 'Diamond Bar',
-    finalStop: 'El Monte Station'
-  },
-  {
-    id: '3',
-    number: '190',
-    route: 'Local Line',
-    status: 'On Time',
-    nextStop: 'West Covina',
-    eta: '3 min',
-    progress: 90,
-    previousStop: 'Baldwin Park',
-    finalStop: 'El Monte Station'
+    finalStop: 'El Monte Station',
+    baseLng: -117.8121,
+    baseLat: 34.0479
   }
 ];
 
 export const mockBusStops = [
   {
-    id: '1',
-    name: 'Cal Poly Pomona Transit Center',
+    id: 'STOP001',
+    name: 'Foothill Transit Center',
     address: '3801 W Temple Ave, Pomona, CA 91768',
     routes: ['486', '190', '194', '480'],
     amenities: ['Shelter', 'Seating', 'Real-time Display'],
+    lng: -117.8221,
+    lat: 34.0579
   },
   {
-    id: '2',
-    name: 'Grand Ave / Temple Ave',
-    address: 'Grand Ave & Temple Ave, Walnut, CA 91789',
-    routes: ['190', '194'],
+    id: 'STOP002',
+    name: 'Azusa Station',
+    address: 'Azusa Station, Azusa, CA 91702',
+    routes: ['280'],
     amenities: ['Shelter', 'Seating'],
+    lng: -117.8321,
+    lat: 34.0679
   },
   {
-    id: '3',
-    name: 'Downtown Pomona Transit Center',
-    address: '100 W Commercial St, Pomona, CA 91768',
-    routes: ['486', '194', '480'],
-    amenities: ['Shelter', 'Seating', 'Real-time Display', 'Ticket Vending'],
+    id: 'STOP003',
+    name: 'Cal Poly Pomona',
+    address: '3801 W Temple Ave, Pomona, CA 91768',
+    routes: ['486', '190', '194', '480'],
+    amenities: ['Shelter', 'Seating', 'Real-time Display'],
+    lng: -117.8121,
+    lat: 34.0479
   },
 ];
 

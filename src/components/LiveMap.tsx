@@ -33,6 +33,18 @@ const ROUTE_COLORS = [
   '#FF9F43', // Orange
 ];
 
+// Define the bus angles and their corresponding sprite images
+const BUS_ANGLES = {
+  0: '/FoothillTransitApp/bus-sprites/bus0.png',
+  45: '/FoothillTransitApp/bus-sprites/bus45.png',
+  90: '/FoothillTransitApp/bus-sprites/bus90.png',
+  135: '/FoothillTransitApp/bus-sprites/bus135.png',
+  180: '/FoothillTransitApp/bus-sprites/bus180.png',
+  225: '/FoothillTransitApp/bus-sprites/bus225.png',
+  270: '/FoothillTransitApp/bus-sprites/bus270.png',
+  315: '/FoothillTransitApp/bus-sprites/bus315.png',
+};
+
 const LiveMap = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -51,45 +63,45 @@ const LiveMap = () => {
   // Get the GitHub Pages URL
   const currentURL = 'https://dylooosh.github.io/FoothillTransitApp/#/live-map';
 
-  // Function to create a modern vehicle marker
-  const createBusElement = (status: string, routeIndex: number) => {
+  // Function to get the closest available angle
+  const getClosestAngle = (angle: number) => {
+    const normalized = ((angle % 360) + 360) % 360;
+    const angles = Object.keys(BUS_ANGLES).map(Number);
+    return angles.reduce((prev, curr) => 
+      Math.abs(curr - normalized) < Math.abs(prev - normalized) ? curr : prev
+    );
+  };
+
+  // Function to create a bus marker element
+  const createBusElement = (routeIndex: number) => {
     const el = document.createElement('div');
     el.className = 'vehicle-marker';
-    const color = ROUTE_COLORS[routeIndex % ROUTE_COLORS.length];
-    el.innerHTML = `
+    
+    const markerHtml = `
       <div style="
-        width: 36px;
-        height: 36px;
-        cursor: pointer;
-        transform-origin: center;
-        transition: transform 0.3s ease;
+        width: 48px;
+        height: 48px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-      ">
-        <svg width="36" height="36" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Direction indicator -->
-          <path d="M30 5 L40 25 L30 20 L20 25 Z" 
-                fill="${color}"
-                stroke="#FFFFFF"
-                stroke-width="2"/>
-          
-          <!-- Main body -->
-          <rect x="15" y="20" width="30" height="35" rx="4" 
-                fill="${color}"
-                stroke="#FFFFFF"
-                stroke-width="2"/>
-          
-          <!-- Windows -->
-          <rect x="18" y="24" width="24" height="8" rx="1" 
-                fill="#FFFFFF"
-                fill-opacity="0.9"/>
-          
-          <!-- Wheels -->
-          <circle cx="20" cy="50" r="3" fill="#FFFFFF"/>
-          <circle cx="40" cy="50" r="3" fill="#FFFFFF"/>
-        </svg>
-      </div>
+      "></div>
     `;
+    
+    el.innerHTML = markerHtml;
     return el;
+  };
+
+  // Function to update marker rotation using sprite images
+  const updateMarker = (marker: mapboxgl.Marker, angle: number) => {
+    const el = marker.getElement();
+    const closestAngle = getClosestAngle(angle);
+    const imageUrl = BUS_ANGLES[closestAngle as keyof typeof BUS_ANGLES];
+    
+    const div = el.querySelector('.vehicle-marker > div') as HTMLElement;
+    if (div) {
+      div.style.backgroundImage = `url(${imageUrl})`;
+    }
   };
 
   useEffect(() => {
@@ -121,21 +133,30 @@ const LiveMap = () => {
     mapInstance.on('load', () => {
       // Add bus markers with animation
       mockBuses.forEach((bus, index) => {
-        // Generate a circular path around the center
+        // Calculate new position
+        const time = Date.now() / 1000;
         const radius = 0.02;
-        const angle = Math.random() * Math.PI * 2;
-        const busLng = lng + Math.cos(angle) * radius;
-        const busLat = lat + Math.sin(angle) * radius;
+        const speed = 0.5;
+        const lng = bus.baseLng + radius * Math.cos(time * speed + index * Math.PI/2);
+        const lat = bus.baseLat + radius * Math.sin(time * speed + index * Math.PI/2);
+        
+        // Calculate heading (direction of movement)
+        const dx = -radius * Math.sin(time * speed + index * Math.PI/2) * speed;
+        const dy = radius * Math.cos(time * speed + index * Math.PI/2) * speed;
+        const heading = (Math.atan2(dy, dx) * 180 / Math.PI + 90) % 360;
 
-        const el = createBusElement(bus.status, index);
+        const el = createBusElement(index);
         
         const marker = new mapboxgl.Marker({
           element: el,
           rotationAlignment: 'map',
           pitchAlignment: 'map'
         })
-          .setLngLat([busLng, busLat])
+          .setLngLat([lng, lat])
           .addTo(mapInstance);
+
+        // Update marker rotation using sprite images
+        updateMarker(marker, heading);
 
         // Add popup
         const popup = new mapboxgl.Popup({ 
@@ -223,14 +244,15 @@ const LiveMap = () => {
         const stopLat = lat + (Math.random() - 0.5) * 0.05;
 
         const el = document.createElement('div');
+        el.className = 'bus-stop-marker';
         el.innerHTML = `
           <div style="
             width: 12px;
             height: 12px;
-            background: #FFFFFF;
-            border: 2px solid #666;
+            background-color: #666;
+            border: 2px solid white;
             border-radius: 50%;
-            cursor: pointer;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
           "></div>
         `;
 
@@ -291,12 +313,8 @@ const LiveMap = () => {
           // Update marker position with smooth transition
           marker.setLngLat([newLng, newLat]);
 
-          // Update marker rotation to face movement direction
-          const el = marker.getElement();
-          const rotationAngle = (angle * 180 / Math.PI) + 90;
-          // Remove skew and just use rotation for clean look
-          (el.querySelector('.vehicle-marker > div') as HTMLElement).style.transform = 
-              `rotate(${rotationAngle}deg)`;
+          // Update marker rotation using sprite images
+          updateMarker(marker, angle);
         });
 
         animationRef.current = requestAnimationFrame(animateBuses);
