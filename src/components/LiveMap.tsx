@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Paper, Text, Stack, Group, Badge, Modal, Card, Button, Tooltip, useMantineTheme, Progress, Timeline, ThemeIcon, Overlay, Container } from '@mantine/core';
 import { IconMapPin, IconCircleCheck, IconQrcode, IconBus, IconClock, IconRoute, IconBusStop, IconFlag, IconSchool, IconAlertTriangle, IconCalendarEvent, IconShare } from '@tabler/icons-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { mockBuses, mockBusStops } from '../data/mockData';
 import BottomNavigation from './BottomNavigation';
+import * as turf from '@turf/turf';
 
 // Note: Replace with your Mapbox token
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -45,6 +46,26 @@ const BUS_ANGLES = {
   315: '/FoothillTransitApp/bus-sprites/bus315.png',
 };
 
+// Mapbox access token and route coordinates
+const ACCESS_TOKEN = 'pk.eyJ1IjoiZHlsb29zaCIsImEiOiJjbTg2cjdrcG0wN3BtMmpwc2JpcDR2dWx3In0.G2LSVKImE8ZslGr2uwvCJA';
+const ROUTE_COORDINATES = [
+  [
+    [-117.872226, 34.070198],
+    [-117.856088, 34.050211],
+    [-117.837539, 34.047341]
+  ],
+  [
+    [-117.816944, 34.059402],
+    [-117.818842, 34.058634],
+    [-117.814016, 34.048908]
+  ],
+  [
+    [-117.834311, 34.026344],
+    [-117.864428, 34.020798],
+    [-117.826642, 34.064110]
+  ]
+];
+
 const LiveMap = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -58,6 +79,7 @@ const LiveMap = () => {
   const [showQR, setShowQR] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [showTracker, setShowTracker] = useState(false);
+  const [routePaths, setRoutePaths] = useState<any[]>([]);
   const theme = useMantineTheme();
 
   // Get the GitHub Pages URL
@@ -116,6 +138,7 @@ const LiveMap = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Fetch route data and create map
   useEffect(() => {
     if (!mapContainer.current) return;
 
@@ -150,53 +173,32 @@ const LiveMap = () => {
       busStopMarkersRef.current.push(marker);
     });
 
-    // Function to update bus positions
-    const updateBuses = () => {
-      mockBuses.forEach((bus, index) => {
-        // Calculate new position along a more realistic path
-        const time = Date.now() / 1000;
-        const speed = 0.1; // Slower speed for more realistic movement
+    // Fetch the snapped routes for each set of coordinates
+    const fetchRoutes = async () => {
+      try {
+        const paths = await Promise.all(ROUTE_COORDINATES.map(async (coords) => {
+          const coordinates = coords.map(coord => coord.join(',')).join(';');
+          const response = await fetch(`https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?access_token=${ACCESS_TOKEN}`);
+          const data = await response.json();
+          
+          if (data.matchings && data.matchings[0]) {
+            // Return the line string as a GeoJSON feature
+            return {
+              type: "Feature",
+              properties: {},
+              geometry: data.matchings[0].geometry
+            };
+          }
+          return null;
+        }));
         
-        // Create a more complex path that follows roads
-        const pathRadius = 0.01; // Smaller radius to adhere closer to roads
-        const pathOffset = index * (Math.PI / 2); // Offset each bus's path
-        
-        // Add some variation to make it more realistic
-        const variation = Math.sin(time * 0.5) * 0.0025;
-        
-        const lng = bus.baseLng + pathRadius * Math.cos(time * speed + pathOffset) + variation;
-        const lat = bus.baseLat + pathRadius * Math.sin(time * speed + pathOffset) + variation;
-        
-        // Calculate heading (direction of movement)
-        const dx = -pathRadius * Math.sin(time * speed + pathOffset) * speed;
-        const dy = pathRadius * Math.cos(time * speed + pathOffset) * speed;
-        const heading = (Math.atan2(dy, dx) * 180 / Math.PI + 90) % 360;
-
-        if (!markersRef.current[bus.id]) {
-          // Create new marker
-          const el = createBusElement(index);
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([lng, lat])
-            .addTo(map.current!);
-
-          marker.getElement().addEventListener('click', () => {
-            setSelectedBus(bus);
-          });
-
-          markersRef.current[bus.id] = marker;
-        } else {
-          // Update existing marker
-          markersRef.current[bus.id].setLngLat([lng, lat]);
-          updateMarker(markersRef.current[bus.id], heading);
-        }
-      });
-
-      requestAnimationFrame(updateBuses);
+        setRoutePaths(paths.filter(Boolean));
+      } catch (error) {
+        console.error('Error fetching routes:', error);
+      }
     };
 
-    map.current.on('load', () => {
-      updateBuses();
-    });
+    fetchRoutes();
 
     return () => {
       map.current?.remove();
@@ -204,6 +206,72 @@ const LiveMap = () => {
       busStopMarkersRef.current.forEach(marker => marker.remove());
     };
   }, []);
+
+  // Update bus positions when routes are loaded
+  useEffect(() => {
+    if (!map.current || routePaths.length === 0) return;
+
+    const updateBuses = () => {
+      mockBuses.forEach((bus, index) => {
+        const time = Date.now() / 1000;
+        const speed = 0.05; // Slower speed for more realistic movement
+        
+        // Use a different path for each bus
+        const pathIndex = index % routePaths.length;
+        const pathFeature = routePaths[pathIndex];
+        if (!pathFeature) return;
+
+        try {
+          // Calculate the total length of the path
+          const pathLength = turf.length(pathFeature, { units: 'kilometers' });
+          
+          // Calculate position along the snapped path
+          const pathProgress = (time * speed) % pathLength;
+          const point = turf.along(pathFeature, pathProgress, { units: 'kilometers' });
+          
+          // Ensure coordinates are correctly typed
+          const position: [number, number] = point.geometry.coordinates as [number, number];
+          
+          // Calculate a point slightly ahead for heading
+          const nextPoint = turf.along(pathFeature, Math.min(pathProgress + 0.01, pathLength), { units: 'kilometers' });
+          const nextPosition: [number, number] = nextPoint.geometry.coordinates as [number, number];
+          
+          // Calculate heading
+          const heading = turf.bearing(position, nextPosition);
+
+          if (!markersRef.current[bus.id]) {
+            // Create new marker
+            const el = createBusElement(index);
+            const marker = new mapboxgl.Marker(el)
+              .setLngLat(position)
+              .addTo(map.current!);
+
+            marker.getElement().addEventListener('click', () => {
+              setSelectedBus(bus);
+            });
+
+            markersRef.current[bus.id] = marker;
+          } else {
+            // Update existing marker
+            markersRef.current[bus.id].setLngLat(position);
+            updateMarker(markersRef.current[bus.id], heading);
+          }
+        } catch (error) {
+          console.error('Error updating bus position:', error);
+        }
+      });
+
+      animationRef.current = requestAnimationFrame(updateBuses);
+    };
+
+    updateBuses();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [routePaths]);
 
   const getStageColor = (progress: number, threshold: number) => {
     return progress >= threshold ? 'green' : 'gray';
