@@ -53,21 +53,42 @@ const BUS_ANGLES: BusAngles = {
 // Mapbox access token and route coordinates
 const ACCESS_TOKEN = mapboxgl.accessToken;
 const ROUTE_COORDINATES = [
+  // Route 1: Cal Poly Pomona to Downtown Pomona
   [
-    [-117.872226, 34.070198],
-    [-117.856088, 34.050211],
-    [-117.837539, 34.047341]
+    [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
+    [-117.8250, 34.0580], // Cal Poly Pomona North Campus
+    [-117.8280, 34.0580], // Cal Poly Pomona East Campus
+    [-117.8300, 34.0570], // Temple Ave & Valley Blvd
+    [-117.8280, 34.0550], // Downtown Pomona
+    [-117.8250, 34.0540], // Pomona Civic Center
+    [-117.8220, 34.0530], // Pomona Mall
+    [-117.8200, 34.0540], // Back to Temple Ave
+    [-117.8221, 34.0579], // Return to Cal Poly
   ],
+  // Route 2: Diamond Bar to Cal Poly Pomona
   [
-    [-117.816944, 34.059402],
-    [-117.818842, 34.058634],
-    [-117.814016, 34.048908]
+    [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
+    [-117.8200, 34.0590], // Cal Poly Pomona South Campus
+    [-117.8180, 34.0600], // Grand Ave & Temple Ave
+    [-117.8160, 34.0610], // Diamond Bar Blvd
+    [-117.8140, 34.0620], // Diamond Bar Town Center
+    [-117.8120, 34.0610], // Diamond Bar High School
+    [-117.8140, 34.0600], // Back to Diamond Bar Blvd
+    [-117.8180, 34.0590], // Back to Grand Ave
+    [-117.8221, 34.0579], // Return to Cal Poly
   ],
+  // Route 3: Pomona Valley Hospital to Cal Poly Pomona
   [
-    [-117.834311, 34.026344],
-    [-117.864428, 34.020798],
-    [-117.826642, 34.064110]
-  ]
+    [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
+    [-117.8240, 34.0560], // Cal Poly Pomona West Campus
+    [-117.8260, 34.0550], // Pomona Valley Hospital
+    [-117.8280, 34.0540], // Pomona Valley Medical Center
+    [-117.8300, 34.0530], // Pomona Valley Mall
+    [-117.8280, 34.0520], // Pomona Valley Park
+    [-117.8260, 34.0530], // Back to Hospital
+    [-117.8240, 34.0540], // Back to Campus
+    [-117.8221, 34.0579], // Return to Cal Poly
+  ],
 ];
 
 const LiveMap = () => {
@@ -150,22 +171,42 @@ const LiveMap = () => {
       pitch: 0
     });
 
-    // Create routes directly without API calls
-    const createRoutes = () => {
-      console.log('Creating routes directly...');
+    // Fetch snapped routes from Mapbox Map Matching API
+    const fetchRoutes = async () => {
+      console.log('Fetching snapped routes...');
       
-      // Convert route coordinates to GeoJSON LineString features
-      const routes = ROUTE_COORDINATES.map(coords => ({
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "LineString",
-          coordinates: coords
-        }
-      }));
-      
-      console.log('Routes created:', routes.length);
-      setRoutePaths(routes);
+      try {
+        const snappedRoutes = await Promise.all(
+          ROUTE_COORDINATES.map(async (coords) => {
+            // Convert coordinates to the format expected by the API
+            const coordinates = coords.map(coord => coord.join(',')).join(';');
+            
+            // Construct the API URL
+            const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?geometries=geojson&access_token=${ACCESS_TOKEN}`;
+            
+            console.log('Fetching route from:', url);
+            
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Received route data:', data);
+            
+            if (!data.matchings || data.matchings.length === 0) {
+              throw new Error('No route matching found');
+            }
+            
+            return data.matchings[0].geometry;
+          })
+        );
+        
+        console.log('All routes fetched successfully');
+        setRoutePaths(snappedRoutes);
+      } catch (error) {
+        console.error('Error fetching routes:', error);
+      }
     };
 
     // Add bus stop markers
@@ -190,8 +231,8 @@ const LiveMap = () => {
       busStopMarkersRef.current.push(marker);
     });
 
-    // Call the createRoutes function
-    createRoutes();
+    // Call the fetchRoutes function
+    fetchRoutes();
 
     return () => {
       map.current?.remove();
@@ -213,7 +254,7 @@ const LiveMap = () => {
     const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
         const time = Date.now() / 1000;
-        const speed = 0.05; // Slower speed for more realistic movement
+        const speed = 0.02; // Slower speed for more realistic movement
         
         // Use a different path for each bus
         const pathIndex = index % routePaths.length;
