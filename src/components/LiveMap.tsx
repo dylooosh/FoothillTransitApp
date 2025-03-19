@@ -193,14 +193,17 @@ const LiveMap = () => {
           
           // Calculate the total length of the path
           const pathLength = length(feature);
+          console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) path length:`, pathLength);
           
           // Calculate position along the snapped path
           const pathProgress = (time * speed) % pathLength;
+          console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) progress:`, pathProgress, 'of', pathLength);
           
           const pointOnLine = along(feature, pathProgress);
           
           // Ensure coordinates are correctly typed
           const position: [number, number] = pointOnLine.geometry.coordinates as [number, number];
+          console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) position:`, position);
           
           // Calculate a point further ahead for heading
           const nextPointOnLine = along(feature, Math.min(pathProgress + 0.05, pathLength));
@@ -224,6 +227,7 @@ const LiveMap = () => {
             });
 
             markersRef.current[bus.id] = marker;
+            console.log(`Created marker for bus ${bus.id} on Route ${pathIndex + 1}`);
           } else {
             // Update existing marker
             markersRef.current[bus.id].setLngLat(position);
@@ -268,7 +272,7 @@ const LiveMap = () => {
       try {
         const snappedRoutes = await Promise.all(
           ROUTE_COORDINATES.map(async (coords, index) => {
-            console.log(`Processing route ${index + 1} with ${coords.length} coordinates`);
+            console.log(`Processing route ${index + 1} with ${coords.length} coordinates:`, coords);
             
             // Convert coordinates to the format expected by the API
             const coordinates = coords.map(coord => coord.join(',')).join(';');
@@ -287,7 +291,8 @@ const LiveMap = () => {
             console.log(`Received route ${index + 1} data:`, {
               matchings: data.matchings?.length,
               code: data.code,
-              message: data.message
+              message: data.message,
+              confidence: data.matchings?.[0]?.confidence
             });
             
             if (!data.matchings || data.matchings.length === 0) {
@@ -297,7 +302,9 @@ const LiveMap = () => {
             const geometry = data.matchings[0].geometry;
             console.log(`Route ${index + 1} geometry:`, {
               type: geometry.type,
-              coordinates: geometry.coordinates.length
+              coordinates: geometry.coordinates.length,
+              firstCoord: geometry.coordinates[0],
+              lastCoord: geometry.coordinates[geometry.coordinates.length - 1]
             });
             
             return geometry;
