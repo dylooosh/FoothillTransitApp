@@ -265,83 +265,88 @@ const LiveMap = () => {
       pitch: 0
     });
 
-    // Fetch snapped routes from Mapbox Map Matching API
-    const fetchRoutes = async () => {
-      console.log('Fetching snapped routes...');
+    // Wait for map to load before proceeding
+    map.current.on('load', () => {
+      console.log('Map loaded successfully');
       
-      try {
-        const snappedRoutes = await Promise.all(
-          ROUTE_COORDINATES.map(async (coords, index) => {
-            console.log(`Processing route ${index + 1} with ${coords.length} coordinates:`, coords);
-            
-            // Convert coordinates to the format expected by the API
-            const coordinates = coords.map(coord => coord.join(',')).join(';');
-            
-            // Construct the API URL with additional parameters for better matching
-            const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&tidy=true&access_token=${ACCESS_TOKEN}`;
-            
-            console.log(`Fetching route ${index + 1} from Mapbox API...`);
-            
-            const response = await fetch(url);
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log(`Received route ${index + 1} data:`, {
-              matchings: data.matchings?.length,
-              code: data.code,
-              message: data.message,
-              confidence: data.matchings?.[0]?.confidence
-            });
-            
-            if (!data.matchings || data.matchings.length === 0) {
-              throw new Error(`No route matching found for route ${index + 1}`);
-            }
-            
-            const geometry = data.matchings[0].geometry;
-            console.log(`Route ${index + 1} geometry:`, {
-              type: geometry.type,
-              coordinates: geometry.coordinates.length,
-              firstCoord: geometry.coordinates[0],
-              lastCoord: geometry.coordinates[geometry.coordinates.length - 1]
-            });
-            
-            return geometry;
-          })
-        );
+      // Add bus stop markers
+      mockBusStops.forEach((stop) => {
+        const el = document.createElement('div');
+        el.className = 'bus-stop-marker';
+        el.innerHTML = `
+          <div style="
+            width: 12px;
+            height: 12px;
+            background-color: #666;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+          "></div>
+        `;
+
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([stop.lng, stop.lat])
+          .addTo(map.current!);
+
+        busStopMarkersRef.current.push(marker);
+      });
+
+      // Fetch snapped routes from Mapbox Map Matching API
+      const fetchRoutes = async () => {
+        console.log('Fetching snapped routes...');
         
-        console.log('All routes fetched successfully:', snappedRoutes.length);
-        setRoutePaths(snappedRoutes);
-      } catch (error) {
-        console.error('Error fetching routes:', error);
-      }
-    };
+        try {
+          const snappedRoutes = await Promise.all(
+            ROUTE_COORDINATES.map(async (coords, index) => {
+              console.log(`Processing route ${index + 1} with ${coords.length} coordinates:`, coords);
+              
+              // Convert coordinates to the format expected by the API
+              const coordinates = coords.map(coord => coord.join(',')).join(';');
+              
+              // Construct the API URL with additional parameters for better matching
+              const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&tidy=true&access_token=${ACCESS_TOKEN}`;
+              
+              console.log(`Fetching route ${index + 1} from Mapbox API...`);
+              
+              const response = await fetch(url);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              
+              const data = await response.json();
+              console.log(`Received route ${index + 1} data:`, {
+                matchings: data.matchings?.length,
+                code: data.code,
+                message: data.message,
+                confidence: data.matchings?.[0]?.confidence
+              });
+              
+              if (!data.matchings || data.matchings.length === 0) {
+                throw new Error(`No route matching found for route ${index + 1}`);
+              }
+              
+              const geometry = data.matchings[0].geometry;
+              console.log(`Route ${index + 1} geometry:`, {
+                type: geometry.type,
+                coordinates: geometry.coordinates.length,
+                firstCoord: geometry.coordinates[0],
+                lastCoord: geometry.coordinates[geometry.coordinates.length - 1]
+              });
+              
+              return geometry;
+            })
+          );
+          
+          console.log('All routes fetched successfully:', snappedRoutes.length);
+          setRoutePaths(snappedRoutes);
+        } catch (error) {
+          console.error('Error fetching routes:', error);
+        }
+      };
 
-    // Add bus stop markers
-    mockBusStops.forEach((stop) => {
-      const el = document.createElement('div');
-      el.className = 'bus-stop-marker';
-      el.innerHTML = `
-        <div style="
-          width: 12px;
-          height: 12px;
-          background-color: #666;
-          border: 2px solid white;
-          border-radius: 50%;
-          box-shadow: 0 0 4px rgba(0,0,0,0.3);
-        "></div>
-      `;
-
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([stop.lng, stop.lat])
-        .addTo(map.current!);
-
-      busStopMarkersRef.current.push(marker);
+      // Call the fetchRoutes function
+      fetchRoutes();
     });
-
-    // Call the fetchRoutes function
-    fetchRoutes();
 
     return () => {
       map.current?.remove();
