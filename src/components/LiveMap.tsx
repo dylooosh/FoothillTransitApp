@@ -195,8 +195,11 @@ const LiveMap = () => {
           const pathLength = length(feature);
           console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) path length:`, pathLength);
           
-          // Calculate position along the snapped path
-          const pathProgress = (time * speed) % pathLength;
+          // Add an offset based on the bus index to distribute buses along the route
+          const offset = (pathLength / mockBuses.length) * index;
+          
+          // Calculate position along the snapped path with offset
+          const pathProgress = ((time * speed) + offset) % pathLength;
           console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) progress:`, pathProgress, 'of', pathLength);
           
           const pointOnLine = along(feature, pathProgress);
