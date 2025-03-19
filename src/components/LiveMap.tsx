@@ -116,6 +116,7 @@ const LiveMap = () => {
   const [showTracker, setShowTracker] = useState(false);
   const [routePaths, setRoutePaths] = useState<any[]>([]);
   const theme = useMantineTheme();
+  const startTimeRef = useRef<number>(Date.now());
 
   // Get the GitHub Pages URL
   const currentURL = 'https://dylooosh.github.io/FoothillTransitApp/#/live-map';
@@ -170,7 +171,8 @@ const LiveMap = () => {
     // Update buses
     const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
-        const time = Date.now() / 1000;
+        // Calculate continuous time since start
+        const time = (Date.now() - startTimeRef.current) / 1000;
         const speed = 0.02;
         
         // Use a different path for each bus
@@ -191,11 +193,9 @@ const LiveMap = () => {
           
           // Calculate the total length of the path
           const pathLength = length(feature);
-          console.log(`Bus ${bus.id} path length:`, pathLength);
           
           // Calculate position along the snapped path
           const pathProgress = (time * speed) % pathLength;
-          console.log(`Bus ${bus.id} progress:`, pathProgress, 'of', pathLength);
           
           const pointOnLine = along(feature, pathProgress);
           
@@ -224,7 +224,6 @@ const LiveMap = () => {
             });
 
             markersRef.current[bus.id] = marker;
-            console.log(`Created marker for bus ${bus.id} at position:`, position);
           } else {
             // Update existing marker
             markersRef.current[bus.id].setLngLat(position);
