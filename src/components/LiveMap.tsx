@@ -179,14 +179,16 @@ const LiveMap = () => {
       
       try {
         const snappedRoutes = await Promise.all(
-          ROUTE_COORDINATES.map(async (coords) => {
+          ROUTE_COORDINATES.map(async (coords, index) => {
+            console.log(`Processing route ${index + 1} with ${coords.length} coordinates`);
+            
             // Convert coordinates to the format expected by the API
             const coordinates = coords.map(coord => coord.join(',')).join(';');
             
-            // Construct the API URL
-            const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?geometries=geojson&access_token=${ACCESS_TOKEN}`;
+            // Construct the API URL with additional parameters for better matching
+            const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&tidy=true&access_token=${ACCESS_TOKEN}`;
             
-            console.log('Fetching route from:', url);
+            console.log(`Fetching route ${index + 1} from Mapbox API...`);
             
             const response = await fetch(url);
             if (!response.ok) {
@@ -194,17 +196,27 @@ const LiveMap = () => {
             }
             
             const data = await response.json();
-            console.log('Received route data:', data);
+            console.log(`Received route ${index + 1} data:`, {
+              matchings: data.matchings?.length,
+              code: data.code,
+              message: data.message
+            });
             
             if (!data.matchings || data.matchings.length === 0) {
-              throw new Error('No route matching found');
+              throw new Error(`No route matching found for route ${index + 1}`);
             }
             
-            return data.matchings[0].geometry;
+            const geometry = data.matchings[0].geometry;
+            console.log(`Route ${index + 1} geometry:`, {
+              type: geometry.type,
+              coordinates: geometry.coordinates.length
+            });
+            
+            return geometry;
           })
         );
         
-        console.log('All routes fetched successfully');
+        console.log('All routes fetched successfully:', snappedRoutes.length);
         setRoutePaths(snappedRoutes);
       } catch (error) {
         console.error('Error fetching routes:', error);
