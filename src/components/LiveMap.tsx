@@ -43,51 +43,49 @@ const BUS_SPRITE = 'bus-sprites/bus0.png';
 // Mapbox access token and route coordinates
 const ACCESS_TOKEN = mapboxgl.accessToken;
 const ROUTE_COORDINATES = [
-  // Route 1: Cal Poly Pomona Campus Loop
+  // Route 1: Pomona & Cal Poly Pomona Loop
   [
-    [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
-    [-117.8240, 34.0580], // Cal Poly Pomona North Campus
-    [-117.8260, 34.0580], // Cal Poly Pomona East Campus
-    [-117.8280, 34.0575], // Temple Ave & Valley Blvd
-    [-117.8285, 34.0565], // Downtown Pomona
-    [-117.8275, 34.0555], // Pomona Civic Center
-    [-117.8255, 34.0545], // Pomona Mall
-    [-117.8235, 34.0555], // Back to Temple Ave
-    [-117.8221, 34.0579], // Return to Cal Poly
+    [-117.7508, 34.0560], // Pomona Transit Center
+    [-117.7522, 34.0551], // Pomona City Hall
+    [-117.7533, 34.0572], // Western University of Health Sciences
+    [-117.7652, 34.0781], // Pomona Valley Hospital Medical Center
+    [-117.7705, 34.0763], // Ganesha Park
+    [-117.8216, 34.0584], // Cal Poly Pomona (Bronco Student Center)
+    [-117.8232, 34.0576], // Cal Poly Pomona (University Drive Stop)
+    [-117.7708, 34.0871], // Pomona Fairplex
+    [-117.7926, 34.0882], // Pomona North Metrolink Station
+    [-117.7652, 34.0781], // Pomona Valley Hospital Medical Center (Return)
+    [-117.7533, 34.0572], // Western University of Health Sciences (Return)
+    [-117.7508, 34.0560], // Pomona Transit Center (End)
   ],
-  // Route 2: Cal Poly Pomona to Diamond Bar Loop
+  // Route 2: Walnut to San Dimas Loop
   [
-    [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
-    [-117.8210, 34.0585], // Cal Poly Pomona South Campus
-    [-117.8190, 34.0595], // Grand Ave & Temple Ave
-    [-117.8170, 34.0605], // Diamond Bar Blvd
-    [-117.8150, 34.0615], // Diamond Bar Town Center
-    [-117.8130, 34.0605], // Diamond Bar High School
-    [-117.8110, 34.0595], // Diamond Bar Park
-    [-117.8090, 34.0585], // Diamond Bar Library
-    [-117.8110, 34.0575], // Diamond Bar Community Center
-    [-117.8130, 34.0565], // Back to Diamond Bar Blvd
-    [-117.8150, 34.0555], // Back to Grand Ave
-    [-117.8190, 34.0565], // Back to Campus
-    [-117.8221, 34.0579], // Return to Cal Poly
+    [-117.8653, 34.0203], // Walnut City Hall
+    [-117.8459, 34.0505], // Mt. San Antonio College
+    [-117.8216, 34.0584], // Cal Poly Pomona (Bronco Student Center)
+    [-117.7508, 34.0560], // Pomona Transit Center
+    [-117.7704, 34.1006], // La Verne University
+    [-117.8067, 34.1064], // San Dimas Civic Center
+    [-117.8182, 34.1068], // San Dimas Transit Center
+    [-117.7704, 34.1006], // La Verne University (Return)
+    [-117.7508, 34.0560], // Pomona Transit Center (Return)
+    [-117.8216, 34.0584], // Cal Poly Pomona (Return)
+    [-117.8459, 34.0505], // Mt. San Antonio College (Return)
+    [-117.8653, 34.0203], // Walnut City Hall (End)
   ],
-  // Route 3: Walnut to Pomona Loop
+  // Route 3: West Covina to Cal Poly Pomona Loop
   [
-    [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
-    [-117.8235, 34.0565], // Cal Poly Pomona West Campus
-    [-117.8255, 34.0555], // Pomona Valley Hospital
-    [-117.8275, 34.0545], // Pomona Valley Medical Center
-    [-117.8295, 34.0535], // Pomona Valley Mall
-    [-117.8315, 34.0525], // Pomona Valley Park
-    [-117.8335, 34.0515], // Walnut Creek Park
-    [-117.8355, 34.0505], // Walnut Creek Mall
-    [-117.8375, 34.0495], // Walnut Creek Library
-    [-117.8355, 34.0485], // Back to Walnut Creek Park
-    [-117.8335, 34.0495], // Back to Pomona Valley Park
-    [-117.8315, 34.0505], // Back to Pomona Valley Mall
-    [-117.8295, 34.0515], // Back to Hospital
-    [-117.8275, 34.0525], // Back to Campus
-    [-117.8221, 34.0579], // Return to Cal Poly
+    [-117.9302, 34.0689], // West Covina Plaza (Westfield West Covina)
+    [-117.9385, 34.0681], // West Covina City Hall
+    [-117.8876, 34.0729], // Eastland Center
+    [-117.8904, 34.0902], // Covina Transit Center
+    [-117.8459, 34.0505], // Mt. San Antonio College
+    [-117.8216, 34.0584], // Cal Poly Pomona (Bronco Student Center)
+    [-117.7508, 34.0560], // Pomona Transit Center
+    [-117.8232, 34.0576], // Cal Poly Pomona (University Drive Stop)
+    [-117.8459, 34.0505], // Mt. San Antonio College (Return)
+    [-117.9380, 34.0683], // West Covina Civic Center
+    [-117.9302, 34.0689], // West Covina Plaza (End)
   ],
 ];
 
