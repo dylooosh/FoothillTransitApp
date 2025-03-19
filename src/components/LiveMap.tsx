@@ -205,24 +205,22 @@ const LiveMap = () => {
           
           // Calculate the total length of the path
           const pathLength = routeLengths[pathIndex];
-          console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) path length:`, pathLength);
           
           // Add an offset based on the bus index to distribute buses along the route
-          const offset = (pathLength / mockBuses.length) * index;
+          const offset = (pathLength / 3) * (index % 3); // Distribute 3 buses per route evenly
           
-          // Calculate position along the snapped path with offset and normalized speed
-          const normalizedSpeed = baseSpeed * speedMultipliers[pathIndex];
+          // Calculate position along the path with offset
+          // Slower speed (0.005 instead of 0.02) for more realistic movement
+          const normalizedSpeed = 0.005 * speedMultipliers[pathIndex];
           const pathProgress = ((time * normalizedSpeed) + offset) % pathLength;
-          console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) progress:`, pathProgress, 'of', pathLength);
           
+          // Get current position
           const pointOnLine = along(feature, pathProgress);
-          
-          // Ensure coordinates are correctly typed
           const position: [number, number] = pointOnLine.geometry.coordinates as [number, number];
-          console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) position:`, position);
           
-          // Calculate a point further ahead for heading
-          const nextPointOnLine = along(feature, Math.min(pathProgress + 0.05, pathLength));
+          // Calculate next position for heading (looking further ahead for smoother rotation)
+          const lookAheadDistance = Math.min(pathProgress + 0.1, pathLength);
+          const nextPointOnLine = along(feature, lookAheadDistance);
           const nextPosition: [number, number] = nextPointOnLine.geometry.coordinates as [number, number];
           
           // Calculate heading
@@ -234,7 +232,11 @@ const LiveMap = () => {
           if (!markersRef.current[bus.id]) {
             // Create new marker
             const el = createBusElement(pathIndex);
-            const marker = new mapboxgl.Marker(el)
+            const marker = new mapboxgl.Marker({
+              element: el,
+              rotationAlignment: 'map',
+              pitchAlignment: 'map'
+            })
               .setLngLat(position)
               .addTo(map.current!);
 
@@ -243,7 +245,6 @@ const LiveMap = () => {
             });
 
             markersRef.current[bus.id] = marker;
-            console.log(`Created marker for bus ${bus.id} on Route ${pathIndex + 1}`);
           } else {
             // Update existing marker
             markersRef.current[bus.id].setLngLat(position);
@@ -316,39 +317,48 @@ const LiveMap = () => {
             ROUTE_COORDINATES.map(async (coords, index) => {
               console.log(`Processing route ${index + 1} with ${coords.length} coordinates:`, coords);
               
-              // Convert coordinates to the format expected by the API
-              const coordinates = coords.map(coord => coord.join(',')).join(';');
-              
-              // Construct the API URL with additional parameters for better matching
-              const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&tidy=true&access_token=${ACCESS_TOKEN}`;
-              
-              console.log(`Fetching route ${index + 1} from Mapbox API...`);
-              
-              const response = await fetch(url);
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+              // Ensure the route is a complete loop by adding segments
+              const routeSegments = [];
+              for (let i = 0; i < coords.length - 1; i++) {
+                const start = coords[i];
+                const end = coords[i + 1];
+                const segmentCoords = `${start.join(',')};${end.join(',')}`;
+                
+                // Fetch route segment
+                const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${segmentCoords}?geometries=geojson&overview=full&access_token=${ACCESS_TOKEN}`;
+                
+                console.log(`Fetching segment ${i + 1} for route ${index + 1}...`);
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (!data.routes || data.routes.length === 0) {
+                  throw new Error(`No route found for segment ${i + 1} of route ${index + 1}`);
+                }
+                
+                routeSegments.push(data.routes[0].geometry);
               }
               
-              const data = await response.json();
-              console.log(`Received route ${index + 1} data:`, {
-                matchings: data.matchings?.length,
-                code: data.code,
-                message: data.message,
-                confidence: data.matchings?.[0]?.confidence
-              });
+              // Combine all segments into a single route
+              const combinedCoordinates = routeSegments.reduce((acc, segment) => {
+                // Remove the last point if it's the same as the first point of the next segment
+                const coords = segment.coordinates;
+                if (acc.length > 0 && acc[acc.length - 1][0] === coords[0][0] && acc[acc.length - 1][1] === coords[0][1]) {
+                  return [...acc, ...coords.slice(1)];
+                }
+                return [...acc, ...coords];
+              }, []);
               
-              if (!data.matchings || data.matchings.length === 0) {
-                throw new Error(`No route matching found for route ${index + 1}`);
-              }
+              // Create the final geometry
+              const geometry = {
+                type: 'LineString',
+                coordinates: combinedCoordinates
+              };
               
-              const geometry = data.matchings[0].geometry;
-              console.log(`Route ${index + 1} geometry:`, {
-                type: geometry.type,
-                coordinates: geometry.coordinates.length,
-                firstCoord: geometry.coordinates[0],
-                lastCoord: geometry.coordinates[geometry.coordinates.length - 1]
-              });
-              
+              console.log(`Route ${index + 1} completed with ${geometry.coordinates.length} points`);
               return geometry;
             })
           );
