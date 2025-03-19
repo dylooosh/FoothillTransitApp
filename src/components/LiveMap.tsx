@@ -168,12 +168,26 @@ const LiveMap = () => {
 
     console.log('Starting bus updates with', routePaths.length, 'routes');
 
+    // Calculate base speed and route lengths
+    const baseSpeed = 0.02;
+    const routeLengths = routePaths.map(path => {
+      const feature: GeoJSONFeature = {
+        type: 'Feature',
+        properties: {},
+        geometry: path
+      };
+      return length(feature);
+    });
+
+    // Calculate speed multipliers to normalize route completion times
+    const maxLength = Math.max(...routeLengths);
+    const speedMultipliers = routeLengths.map(length => maxLength / length);
+
     // Update buses
     const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
         // Calculate continuous time since start
         const time = (Date.now() - startTimeRef.current) / 1000;
-        const speed = 0.02;
         
         // Use a different path for each bus
         const pathIndex = index % routePaths.length;
@@ -192,14 +206,15 @@ const LiveMap = () => {
           };
           
           // Calculate the total length of the path
-          const pathLength = length(feature);
+          const pathLength = routeLengths[pathIndex];
           console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) path length:`, pathLength);
           
           // Add an offset based on the bus index to distribute buses along the route
           const offset = (pathLength / mockBuses.length) * index;
           
-          // Calculate position along the snapped path with offset
-          const pathProgress = ((time * speed) + offset) % pathLength;
+          // Calculate position along the snapped path with offset and normalized speed
+          const normalizedSpeed = baseSpeed * speedMultipliers[pathIndex];
+          const pathProgress = ((time * normalizedSpeed) + offset) % pathLength;
           console.log(`Bus ${bus.id} (Route ${pathIndex + 1}) progress:`, pathProgress, 'of', pathLength);
           
           const pointOnLine = along(feature, pathProgress);
