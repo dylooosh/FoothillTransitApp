@@ -81,6 +81,16 @@ const ROUTE_COORDINATES = [
   ],
 ];
 
+// Define GeoJSON types
+type GeoJSONFeature = {
+  type: 'Feature';
+  properties: Record<string, any>;
+  geometry: {
+    type: 'LineString';
+    coordinates: [number, number][];
+  };
+};
+
 const LiveMap = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -248,24 +258,25 @@ const LiveMap = () => {
         }
 
         try {
-          // Validate the geometry type
-          if (!pathFeature.geometry || pathFeature.geometry.type !== 'LineString') {
-            console.error(`Invalid geometry for bus ${bus.id}:`, pathFeature);
-            return;
-          }
+          // Create a proper GeoJSON Feature from the path
+          const feature: GeoJSONFeature = {
+            type: 'Feature',
+            properties: {},
+            geometry: pathFeature
+          };
           
           // Calculate the total length of the path
-          const pathLength = length(pathFeature);
+          const pathLength = length(feature);
           
           // Calculate position along the snapped path
           const pathProgress = (time * speed) % pathLength;
-          const pointOnLine = along(pathFeature, pathProgress);
+          const pointOnLine = along(feature, pathProgress);
           
           // Ensure coordinates are correctly typed
           const position: [number, number] = pointOnLine.geometry.coordinates as [number, number];
           
           // Calculate a point slightly ahead for heading
-          const nextPointOnLine = along(pathFeature, Math.min(pathProgress + 0.01, pathLength));
+          const nextPointOnLine = along(feature, Math.min(pathProgress + 0.01, pathLength));
           const nextPosition: [number, number] = nextPointOnLine.geometry.coordinates as [number, number];
           
           // Calculate heading
