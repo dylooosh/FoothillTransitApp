@@ -166,8 +166,7 @@ const LiveMap = () => {
 
     console.log('Starting bus updates with', routePaths.length, 'routes');
 
-    // Calculate base speed and route lengths
-    const baseSpeed = 0.02;
+    // Calculate route lengths
     const routeLengths = routePaths.map(path => {
       const feature: GeoJSONFeature = {
         type: 'Feature',
@@ -176,10 +175,6 @@ const LiveMap = () => {
       };
       return length(feature);
     });
-
-    // Calculate speed multipliers to normalize route completion times
-    const maxLength = Math.max(...routeLengths);
-    const speedMultipliers = routeLengths.map(length => maxLength / length);
 
     // Update buses
     const updateBuses = () => {
@@ -210,8 +205,8 @@ const LiveMap = () => {
           const offset = (pathLength / 3) * (index % 3); // Distribute 3 buses per route evenly
           
           // Calculate position along the path with offset
-          // Slower speed (0.005 instead of 0.02) for more realistic movement
-          const normalizedSpeed = 0.005 * speedMultipliers[pathIndex];
+          // Use constant speed of 0.02 for all buses
+          const normalizedSpeed = 0.02;
           const pathProgress = ((time * normalizedSpeed) + offset) % pathLength;
           
           // Get current position
