@@ -43,7 +43,7 @@ const BUS_SPRITE = 'bus-sprites/bus0.png';
 // Mapbox access token and route coordinates
 const ACCESS_TOKEN = mapboxgl.accessToken;
 const ROUTE_COORDINATES = [
-  // Route 1: Cal Poly Pomona to Downtown Pomona
+  // Route 1: Cal Poly Pomona Campus Loop
   [
     [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
     [-117.8250, 34.0580], // Cal Poly Pomona North Campus
@@ -55,7 +55,7 @@ const ROUTE_COORDINATES = [
     [-117.8200, 34.0540], // Back to Temple Ave
     [-117.8221, 34.0579], // Return to Cal Poly
   ],
-  // Route 2: Diamond Bar to Cal Poly Pomona
+  // Route 2: Cal Poly Pomona to Diamond Bar Loop
   [
     [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
     [-117.8200, 34.0590], // Cal Poly Pomona South Campus
@@ -63,20 +63,30 @@ const ROUTE_COORDINATES = [
     [-117.8160, 34.0610], // Diamond Bar Blvd
     [-117.8140, 34.0620], // Diamond Bar Town Center
     [-117.8120, 34.0610], // Diamond Bar High School
-    [-117.8140, 34.0600], // Back to Diamond Bar Blvd
-    [-117.8180, 34.0590], // Back to Grand Ave
+    [-117.8100, 34.0600], // Diamond Bar Park
+    [-117.8080, 34.0590], // Diamond Bar Library
+    [-117.8100, 34.0580], // Diamond Bar Community Center
+    [-117.8120, 34.0570], // Back to Diamond Bar Blvd
+    [-117.8140, 34.0560], // Back to Grand Ave
+    [-117.8180, 34.0570], // Back to Campus
     [-117.8221, 34.0579], // Return to Cal Poly
   ],
-  // Route 3: Pomona Valley Hospital to Cal Poly Pomona
+  // Route 3: Walnut to Pomona Loop
   [
     [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
     [-117.8240, 34.0560], // Cal Poly Pomona West Campus
     [-117.8260, 34.0550], // Pomona Valley Hospital
     [-117.8280, 34.0540], // Pomona Valley Medical Center
     [-117.8300, 34.0530], // Pomona Valley Mall
-    [-117.8280, 34.0520], // Pomona Valley Park
-    [-117.8260, 34.0530], // Back to Hospital
-    [-117.8240, 34.0540], // Back to Campus
+    [-117.8320, 34.0520], // Pomona Valley Park
+    [-117.8340, 34.0510], // Walnut Creek Park
+    [-117.8360, 34.0500], // Walnut Creek Mall
+    [-117.8380, 34.0490], // Walnut Creek Library
+    [-117.8360, 34.0480], // Back to Walnut Creek Park
+    [-117.8340, 34.0490], // Back to Pomona Valley Park
+    [-117.8320, 34.0500], // Back to Pomona Valley Mall
+    [-117.8300, 34.0510], // Back to Hospital
+    [-117.8280, 34.0520], // Back to Campus
     [-117.8221, 34.0579], // Return to Cal Poly
   ],
 ];
@@ -117,8 +127,8 @@ const LiveMap = () => {
     
     const img = document.createElement('img');
     img.src = BUS_SPRITE;
-    img.style.width = '32px';
-    img.style.height = '32px';
+    img.style.width = '48px';  // Increased from 32px
+    img.style.height = '48px'; // Increased from 32px
     img.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
     img.style.transition = 'transform 0.3s ease';
     
@@ -131,9 +141,8 @@ const LiveMap = () => {
     const el = marker.getElement();
     const img = el.querySelector('img');
     if (img) {
-      // Adjust angle to make the bus face the direction of travel
-      // Subtract 90 because the bus0.png is facing north (90 degrees)
-      img.style.transform = `rotate(${angle - 90}deg)`;
+      // The bus0.png is facing north (0 degrees), so we need to adjust the angle
+      img.style.transform = `rotate(${angle}deg)`;
     }
   };
 
