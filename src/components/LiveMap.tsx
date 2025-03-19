@@ -158,6 +158,95 @@ const LiveMap = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Update bus positions when routes are loaded
+  useEffect(() => {
+    if (!map.current || routePaths.length === 0) {
+      console.log('Map or routes not ready yet. Map:', !!map.current, 'Routes:', routePaths.length);
+      return;
+    }
+
+    console.log('Starting bus updates with', routePaths.length, 'routes');
+
+    // Update buses
+    const updateBuses = () => {
+      mockBuses.forEach((bus, index) => {
+        const time = Date.now() / 1000;
+        const speed = 0.02;
+        
+        // Use a different path for each bus
+        const pathIndex = index % routePaths.length;
+        const pathFeature = routePaths[pathIndex];
+        if (!pathFeature) {
+          console.warn(`No path found for bus ${bus.id} at index ${pathIndex}`);
+          return;
+        }
+
+        try {
+          // Create a proper GeoJSON Feature from the path
+          const feature: GeoJSONFeature = {
+            type: 'Feature',
+            properties: {},
+            geometry: pathFeature
+          };
+          
+          // Calculate the total length of the path
+          const pathLength = length(feature);
+          console.log(`Bus ${bus.id} path length:`, pathLength);
+          
+          // Calculate position along the snapped path
+          const pathProgress = (time * speed) % pathLength;
+          console.log(`Bus ${bus.id} progress:`, pathProgress, 'of', pathLength);
+          
+          const pointOnLine = along(feature, pathProgress);
+          
+          // Ensure coordinates are correctly typed
+          const position: [number, number] = pointOnLine.geometry.coordinates as [number, number];
+          
+          // Calculate a point further ahead for heading
+          const nextPointOnLine = along(feature, Math.min(pathProgress + 0.05, pathLength));
+          const nextPosition: [number, number] = nextPointOnLine.geometry.coordinates as [number, number];
+          
+          // Calculate heading
+          const headingValue = bearing(
+            point(position),
+            point(nextPosition)
+          );
+
+          if (!markersRef.current[bus.id]) {
+            // Create new marker
+            const el = createBusElement(pathIndex);
+            const marker = new mapboxgl.Marker(el)
+              .setLngLat(position)
+              .addTo(map.current!);
+
+            marker.getElement().addEventListener('click', () => {
+              setSelectedBus(bus);
+            });
+
+            markersRef.current[bus.id] = marker;
+            console.log(`Created marker for bus ${bus.id} at position:`, position);
+          } else {
+            // Update existing marker
+            markersRef.current[bus.id].setLngLat(position);
+            updateMarker(markersRef.current[bus.id], headingValue);
+          }
+        } catch (error) {
+          console.error(`Error updating bus ${bus.id}:`, error);
+        }
+      });
+
+      animationRef.current = requestAnimationFrame(updateBuses);
+    };
+
+    updateBuses();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [routePaths]);
+
   // Initialize map and create routes
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -169,7 +258,7 @@ const LiveMap = () => {
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
       center: [-117.8221, 34.0579],
-      zoom: 12,
+      zoom: 11,
       pitch: 0
     });
 
@@ -254,92 +343,6 @@ const LiveMap = () => {
       busStopMarkersRef.current.forEach(marker => marker.remove());
     };
   }, []);
-
-  // Update bus positions when routes are loaded
-  useEffect(() => {
-    if (!map.current || routePaths.length === 0) {
-      console.log('Map or routes not ready yet. Map:', !!map.current, 'Routes:', routePaths.length);
-      return;
-    }
-
-    console.log('Starting bus updates with', routePaths.length, 'routes');
-
-    // Update buses
-    const updateBuses = () => {
-      mockBuses.forEach((bus, index) => {
-        const time = Date.now() / 1000;
-        const speed = 0.02; // Changed back to original speed
-        
-        // Use a different path for each bus
-        const pathIndex = index % routePaths.length;
-        const pathFeature = routePaths[pathIndex];
-        if (!pathFeature) {
-          console.warn(`No path found for bus ${bus.id} at index ${pathIndex}`);
-          return;
-        }
-
-        try {
-          // Create a proper GeoJSON Feature from the path
-          const feature: GeoJSONFeature = {
-            type: 'Feature',
-            properties: {},
-            geometry: pathFeature
-          };
-          
-          // Calculate the total length of the path
-          const pathLength = length(feature);
-          
-          // Calculate position along the snapped path with increased speed
-          const pathProgress = (time * speed) % pathLength;
-          const pointOnLine = along(feature, pathProgress);
-          
-          // Ensure coordinates are correctly typed
-          const position: [number, number] = pointOnLine.geometry.coordinates as [number, number];
-          
-          // Calculate a point further ahead for heading
-          const nextPointOnLine = along(feature, Math.min(pathProgress + 0.05, pathLength));
-          const nextPosition: [number, number] = nextPointOnLine.geometry.coordinates as [number, number];
-          
-          // Calculate heading
-          const headingValue = bearing(
-            point(position),
-            point(nextPosition)
-          );
-
-          if (!markersRef.current[bus.id]) {
-            // Create new marker
-            const el = createBusElement(pathIndex);
-            const marker = new mapboxgl.Marker(el)
-              .setLngLat(position)
-              .addTo(map.current!);
-
-            marker.getElement().addEventListener('click', () => {
-              setSelectedBus(bus);
-            });
-
-            markersRef.current[bus.id] = marker;
-            console.log(`Created marker for bus ${bus.id} at position:`, position);
-          } else {
-            // Update existing marker
-            markersRef.current[bus.id].setLngLat(position);
-            updateMarker(markersRef.current[bus.id], headingValue);
-          }
-        } catch (error) {
-          console.error(`Error updating bus ${bus.id}:`, error);
-        }
-      });
-
-      animationRef.current = requestAnimationFrame(updateBuses);
-    };
-
-    updateBuses();
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [routePaths]);
 
   const getStageColor = (progress: number, threshold: number) => {
     return progress >= threshold ? 'green' : 'gray';
