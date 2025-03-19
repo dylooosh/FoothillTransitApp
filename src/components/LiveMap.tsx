@@ -46,47 +46,47 @@ const ROUTE_COORDINATES = [
   // Route 1: Cal Poly Pomona Campus Loop
   [
     [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
-    [-117.8250, 34.0580], // Cal Poly Pomona North Campus
-    [-117.8280, 34.0580], // Cal Poly Pomona East Campus
-    [-117.8300, 34.0570], // Temple Ave & Valley Blvd
-    [-117.8280, 34.0550], // Downtown Pomona
-    [-117.8250, 34.0540], // Pomona Civic Center
-    [-117.8220, 34.0530], // Pomona Mall
-    [-117.8200, 34.0540], // Back to Temple Ave
+    [-117.8240, 34.0580], // Cal Poly Pomona North Campus
+    [-117.8260, 34.0580], // Cal Poly Pomona East Campus
+    [-117.8280, 34.0575], // Temple Ave & Valley Blvd
+    [-117.8285, 34.0565], // Downtown Pomona
+    [-117.8275, 34.0555], // Pomona Civic Center
+    [-117.8255, 34.0545], // Pomona Mall
+    [-117.8235, 34.0555], // Back to Temple Ave
     [-117.8221, 34.0579], // Return to Cal Poly
   ],
   // Route 2: Cal Poly Pomona to Diamond Bar Loop
   [
     [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
-    [-117.8200, 34.0590], // Cal Poly Pomona South Campus
-    [-117.8180, 34.0600], // Grand Ave & Temple Ave
-    [-117.8160, 34.0610], // Diamond Bar Blvd
-    [-117.8140, 34.0620], // Diamond Bar Town Center
-    [-117.8120, 34.0610], // Diamond Bar High School
-    [-117.8100, 34.0600], // Diamond Bar Park
-    [-117.8080, 34.0590], // Diamond Bar Library
-    [-117.8100, 34.0580], // Diamond Bar Community Center
-    [-117.8120, 34.0570], // Back to Diamond Bar Blvd
-    [-117.8140, 34.0560], // Back to Grand Ave
-    [-117.8180, 34.0570], // Back to Campus
+    [-117.8210, 34.0585], // Cal Poly Pomona South Campus
+    [-117.8190, 34.0595], // Grand Ave & Temple Ave
+    [-117.8170, 34.0605], // Diamond Bar Blvd
+    [-117.8150, 34.0615], // Diamond Bar Town Center
+    [-117.8130, 34.0605], // Diamond Bar High School
+    [-117.8110, 34.0595], // Diamond Bar Park
+    [-117.8090, 34.0585], // Diamond Bar Library
+    [-117.8110, 34.0575], // Diamond Bar Community Center
+    [-117.8130, 34.0565], // Back to Diamond Bar Blvd
+    [-117.8150, 34.0555], // Back to Grand Ave
+    [-117.8190, 34.0565], // Back to Campus
     [-117.8221, 34.0579], // Return to Cal Poly
   ],
   // Route 3: Walnut to Pomona Loop
   [
     [-117.8221, 34.0579], // Cal Poly Pomona Campus Center
-    [-117.8240, 34.0560], // Cal Poly Pomona West Campus
-    [-117.8260, 34.0550], // Pomona Valley Hospital
-    [-117.8280, 34.0540], // Pomona Valley Medical Center
-    [-117.8300, 34.0530], // Pomona Valley Mall
-    [-117.8320, 34.0520], // Pomona Valley Park
-    [-117.8340, 34.0510], // Walnut Creek Park
-    [-117.8360, 34.0500], // Walnut Creek Mall
-    [-117.8380, 34.0490], // Walnut Creek Library
-    [-117.8360, 34.0480], // Back to Walnut Creek Park
-    [-117.8340, 34.0490], // Back to Pomona Valley Park
-    [-117.8320, 34.0500], // Back to Pomona Valley Mall
-    [-117.8300, 34.0510], // Back to Hospital
-    [-117.8280, 34.0520], // Back to Campus
+    [-117.8235, 34.0565], // Cal Poly Pomona West Campus
+    [-117.8255, 34.0555], // Pomona Valley Hospital
+    [-117.8275, 34.0545], // Pomona Valley Medical Center
+    [-117.8295, 34.0535], // Pomona Valley Mall
+    [-117.8315, 34.0525], // Pomona Valley Park
+    [-117.8335, 34.0515], // Walnut Creek Park
+    [-117.8355, 34.0505], // Walnut Creek Mall
+    [-117.8375, 34.0495], // Walnut Creek Library
+    [-117.8355, 34.0485], // Back to Walnut Creek Park
+    [-117.8335, 34.0495], // Back to Pomona Valley Park
+    [-117.8315, 34.0505], // Back to Pomona Valley Mall
+    [-117.8295, 34.0515], // Back to Hospital
+    [-117.8275, 34.0525], // Back to Campus
     [-117.8221, 34.0579], // Return to Cal Poly
   ],
 ];
