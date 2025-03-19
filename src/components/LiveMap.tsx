@@ -109,7 +109,7 @@ const LiveMap = () => {
   const animationRef = useRef<number | null>(null);
   const [lng] = useState(-117.8221);
   const [lat] = useState(34.0579);
-  const [zoom] = useState(12);
+  const [zoom] = useState(11);
   const [selectedBus, setSelectedBus] = useState<BusDetails | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -256,7 +256,7 @@ const LiveMap = () => {
     const updateBuses = () => {
       mockBuses.forEach((bus, index) => {
         const time = Date.now() / 1000;
-        const speed = 0.02; // Slower speed for more realistic movement
+        const speed = 0.02; // Changed back to original speed
         
         // Use a different path for each bus
         const pathIndex = index % routePaths.length;
@@ -277,15 +277,15 @@ const LiveMap = () => {
           // Calculate the total length of the path
           const pathLength = length(feature);
           
-          // Calculate position along the snapped path
+          // Calculate position along the snapped path with increased speed
           const pathProgress = (time * speed) % pathLength;
           const pointOnLine = along(feature, pathProgress);
           
           // Ensure coordinates are correctly typed
           const position: [number, number] = pointOnLine.geometry.coordinates as [number, number];
           
-          // Calculate a point slightly ahead for heading
-          const nextPointOnLine = along(feature, Math.min(pathProgress + 0.01, pathLength));
+          // Calculate a point further ahead for heading
+          const nextPointOnLine = along(feature, Math.min(pathProgress + 0.05, pathLength));
           const nextPosition: [number, number] = nextPointOnLine.geometry.coordinates as [number, number];
           
           // Calculate heading
