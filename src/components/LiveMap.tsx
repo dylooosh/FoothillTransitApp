@@ -37,18 +37,8 @@ const ROUTE_COLORS = [
   '#FF9F43', // Orange
 ];
 
-// Define the bus angles and their corresponding sprite images
-type BusAngles = { [key: number]: string };
-const BUS_ANGLES: BusAngles = {
-  0: 'bus-sprites/bus0.png',
-  45: 'bus-sprites/bus45.png',
-  90: 'bus-sprites/bus90.png',
-  135: 'bus-sprites/bus135.png',
-  180: 'bus-sprites/bus180.png',
-  225: 'bus-sprites/bus225.png',
-  270: 'bus-sprites/bus270.png',
-  315: 'bus-sprites/bus315.png',
-};
+// Define the bus sprite image (only using bus0.png)
+const BUS_SPRITE = 'bus-sprites/bus0.png';
 
 // Mapbox access token and route coordinates
 const ACCESS_TOKEN = mapboxgl.accessToken;
@@ -110,37 +100,30 @@ const LiveMap = () => {
   // Get the GitHub Pages URL
   const currentURL = 'https://dylooosh.github.io/FoothillTransitApp/#/live-map';
 
-  // Function to get the closest available angle
-  const getClosestAngle = (angle: number) => {
-    const normalized = ((angle % 360) + 360) % 360;
-    const angles = Object.keys(BUS_ANGLES).map(Number);
-    return angles.reduce((prev, curr) => 
-      Math.abs(curr - normalized) < Math.abs(prev - normalized) ? curr : prev
-    );
-  };
-
   // Function to create a bus marker element
   const createBusElement = (routeIndex: number) => {
     const el = document.createElement('div');
     el.className = 'vehicle-marker';
     
     const img = document.createElement('img');
-    img.src = BUS_ANGLES[0]; // Start with 0 degree angle
+    img.src = BUS_SPRITE;
     img.style.width = '32px';
     img.style.height = '32px';
     img.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+    img.style.transition = 'transform 0.3s ease';
     
     el.appendChild(img);
     return el;
   };
 
-  // Update marker with correct sprite based on angle
+  // Update marker with rotation based on angle
   const updateMarker = (marker: mapboxgl.Marker, angle: number) => {
     const el = marker.getElement();
     const img = el.querySelector('img');
     if (img) {
-      const closestAngle = getClosestAngle(angle);
-      img.src = BUS_ANGLES[closestAngle];
+      // Adjust angle to make the bus face the direction of travel
+      // Subtract 90 because the bus0.png is facing north (90 degrees)
+      img.style.transform = `rotate(${angle - 90}deg)`;
     }
   };
 
